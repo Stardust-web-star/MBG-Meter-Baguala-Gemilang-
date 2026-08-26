@@ -23,6 +23,7 @@ import {
   getGSheetConfig, 
   saveGSheetConfig,
   safeMergeRecords,
+  fetchAndSyncFromGoogleSheet,
   syncAddRecordToSheetBackground,
   syncUpdateRecordToSheetBackground
 } from './data/storage';
@@ -51,45 +52,35 @@ export default function App() {
 
   // Data & Google Sheets state
   const [records, setRecords] = useState<MeterRecord[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState('JULI');
+  const [selectedMonth, setSelectedMonth] = useState('AGUSTUS');
   const [isGSheetModalOpen, setIsGSheetModalOpen] = useState(false);
   const [sheetConfig, setSheetConfig] = useState<GoogleSheetConfig>(getGSheetConfig());
+  const [isSyncingSheet, setIsSyncingSheet] = useState(false);
 
   // Deep linking / contextual navigation state
   const [filterPetugasForRekap, setFilterPetugasForRekap] = useState<PetugasName | undefined>(undefined);
   const [filterStatusForRekap, setFilterStatusForRekap] = useState<'SELESAI' | 'BELUM' | undefined>(undefined);
   const [recordForDocPrint, setRecordForDocPrint] = useState<MeterRecord | null>(null);
 
-  // Sync specific month with Google Sheet in background
-  const syncMonthWithSheet = (monthToSync: string, baseRecords?: MeterRecord[]) => {
-    const storedCfg = getGSheetConfig();
-    if (storedCfg.webAppUrl && storedCfg.autoSync) {
+  // Automatic direct sync with Google Sheet for selected month
+  const syncMonthWithSheet = async (monthToSync: string, baseRecords?: MeterRecord[]) => {
+    setIsSyncingSheet(true);
+    try {
       const currentRecs = baseRecords || getStoredRecords();
-      const targetUrl = `${storedCfg.webAppUrl.trim()}${storedCfg.webAppUrl.includes('?') ? '&' : '?'}sheetName=${encodeURIComponent(monthToSync)}&t=${Date.now()}`;
-      fetch(targetUrl)
-        .then(res => res.json())
-        .then(json => {
-          if (json && json.status === 'success' && Array.isArray(json.data)) {
-            const merged = safeMergeRecords(json.data, currentRecs, monthToSync);
-            saveRecords(merged);
-            setRecords(merged);
-            const updatedCfg = { 
-              ...storedCfg, 
-              selectedSheetTab: monthToSync, 
-              lastSyncTime: new Date().toISOString(), 
-              syncStatus: 'connected' as const 
-            };
-            saveGSheetConfig(updatedCfg);
-            setSheetConfig(updatedCfg);
-          }
-        })
-        .catch(err => {
-          console.warn(`Initial background Google Sheet sync note for ${monthToSync}:`, err);
-        });
+      const res = await fetchAndSyncFromGoogleSheet(monthToSync, currentRecs);
+      if (res.success && res.records.length > 0) {
+        setRecords(res.records);
+        const updatedCfg = getGSheetConfig();
+        setSheetConfig(updatedCfg);
+      }
+    } catch (err) {
+      console.warn(`Direct background Google Sheet sync note for ${monthToSync}:`, err);
+    } finally {
+      setIsSyncingSheet(false);
     }
   };
 
-  // Initialize data on mount
+  // Initialize data on mount and set up automatic background sync
   useEffect(() => {
     const storedUser = getCurrentUser();
     const storedUsers = getStoredUsers();
@@ -100,7 +91,7 @@ export default function App() {
     setRecords(storedRecords);
     setSheetConfig(storedCfg);
 
-    const initialMonth = storedCfg.selectedSheetTab || 'JULI';
+    const initialMonth = storedCfg.selectedSheetTab || 'AGUSTUS';
     setSelectedMonth(initialMonth);
 
     if (storedUser) {
@@ -110,8 +101,25 @@ export default function App() {
       setIsLoginModalOpen(true);
     }
 
-    // Auto sync on mount for the selected month
+    // Direct Sync On Load for AGUSTUS, JULI, and SEPTEMBER
     syncMonthWithSheet(initialMonth, storedRecords);
+
+    // Pre-sync other months in the background so switching is instant
+    const monthsToPreSync = ['AGUSTUS', 'JULI', 'SEPTEMBER'].filter(m => m !== initialMonth);
+    monthsToPreSync.forEach(m => {
+      fetchAndSyncFromGoogleSheet(m, storedRecords).then(res => {
+        if (res.success) {
+          setRecords(res.records);
+        }
+      });
+    });
+
+    // Periodic Background Polling every 30 seconds
+    const intervalId = setInterval(() => {
+      syncMonthWithSheet(initialMonth);
+    }, 30000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   // Auth Handlers
@@ -280,6 +288,8 @@ export default function App() {
                 selectedMonth={selectedMonth}
                 onSelectMonth={handleSelectMonth}
                 onOpenGSheetModal={() => setIsGSheetModalOpen(true)}
+                onTriggerManualSync={() => syncMonthWithSheet(selectedMonth)}
+                isSyncingSheet={isSyncingSheet}
                 onLogout={handleLogout}
                 onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
                 isSidebarOpen={isSidebarOpen}

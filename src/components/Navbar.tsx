@@ -19,6 +19,8 @@ interface NavbarProps {
   currentUser: UserAccount | null;
   onLogout: () => void;
   onOpenGSheetModal: () => void;
+  onTriggerManualSync?: () => void;
+  isSyncingSheet?: boolean;
   selectedMonth: string;
   onSelectMonth: (month: string) => void;
   onToggleSidebar: () => void;
@@ -46,6 +48,8 @@ export function Navbar({
   currentUser,
   onLogout,
   onOpenGSheetModal,
+  onTriggerManualSync,
+  isSyncingSheet = false,
   selectedMonth,
   onSelectMonth,
   onToggleSidebar,
@@ -246,22 +250,30 @@ export function Navbar({
 
       {/* Right: Live Sync & User Status Pills */}
       <div className="relative flex items-center space-x-2.5 sm:space-x-4 shrink-0">
-        {/* Google Sheet Sync Button (Floating Pill) */}
+        {/* Google Sheet Direct Auto-Sync Button (Floating Pill) */}
         <motion.button
           id="btn-open-gsheet-modal"
           type="button"
-          onClick={onOpenGSheetModal}
+          onClick={() => {
+            if (onTriggerManualSync) {
+              onTriggerManualSync();
+            } else {
+              onOpenGSheetModal();
+            }
+          }}
           whileHover={{ scale: 1.04, y: -1 }}
           whileTap={{ scale: 0.96 }}
           transition={{ type: 'spring', stiffness: 400, damping: 20 }}
           className="flex items-center space-x-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200/90 text-emerald-800 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer group"
-          title="Sinkronisasi Google Sheet"
+          title="Klik untuk Sinkronisasi Langsung Data Google Sheet"
         >
-          <FileSpreadsheet className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform shrink-0" />
-          <span className="hidden sm:inline text-[11px] font-semibold text-emerald-900">Sheet:</span>
+          <FileSpreadsheet className={`w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform shrink-0 ${isSyncingSheet ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline text-[11px] font-semibold text-emerald-900">
+            {isSyncingSheet ? 'Memuat Data...' : 'Sheet:'}
+          </span>
           <span className="bg-emerald-600 text-white text-[9px] font-mono font-black px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-200 animate-ping inline-block"></span>
-            LIVE
+            <span className={`w-1.5 h-1.5 rounded-full bg-emerald-200 inline-block ${isSyncingSheet ? 'animate-spin' : 'animate-ping'}`}></span>
+            {isSyncingSheet ? 'SYNC' : 'AUTO-LIVE'}
           </span>
         </motion.button>
 

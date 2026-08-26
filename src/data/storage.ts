@@ -11,10 +11,10 @@ const STORAGE_KEYS = {
 };
 
 export const DEFAULT_GSHEET_CONFIG: GoogleSheetConfig = {
-  sheetUrl: 'https://docs.google.com/spreadsheets/d/1UYWV2Lj2YyR-jIKpQR5G4jyiIBaZXpuX6TSBV_9txEE/edit?gid=0#gid=0',
-  sheetId: '1UYWV2Lj2YyR-jIKpQR5G4jyiIBaZXpuX6TSBV_9txEE',
-  webAppUrl: 'https://script.google.com/macros/s/AKfycbzUPTMp0lU2oz2lNmAxn416FmRN5isMdzXMtKzOWMRJydmvTyfzn7bs5Qvs2fJu3ohi/exec',
-  selectedSheetTab: 'JULI',
+  sheetUrl: 'https://docs.google.com/spreadsheets/d/1w0JXKZaJdTqzzc0iA9QK179ggx7sz0EHISt4qhNWlc/edit?gid=18648303#gid=18648303',
+  sheetId: '1w0JXKZaJdTqzzc0iA9QK179ggx7sz0EHISt4qhNWlc',
+  webAppUrl: 'https://script.google.com/macros/s/AKfycbxo4wsaicmVoaqSZj9Z7wOErdolaX80LNhjDteG8ZRQsir4Jm4jmss6bza-ZkhSZe5SLA/exec',
+  selectedSheetTab: 'AGUSTUS',
   autoSync: true,
   lastSyncTime: new Date().toISOString(),
   syncStatus: 'connected'
@@ -170,7 +170,14 @@ export function getGSheetConfig(): GoogleSheetConfig {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.GSHEET_CONFIG);
     if (!raw) return DEFAULT_GSHEET_CONFIG;
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return {
+      ...DEFAULT_GSHEET_CONFIG,
+      ...parsed,
+      webAppUrl: parsed.webAppUrl || DEFAULT_GSHEET_CONFIG.webAppUrl,
+      sheetId: parsed.sheetId || DEFAULT_GSHEET_CONFIG.sheetId,
+      sheetUrl: parsed.sheetUrl || DEFAULT_GSHEET_CONFIG.sheetUrl
+    };
   } catch {
     return DEFAULT_GSHEET_CONFIG;
   }
@@ -178,6 +185,76 @@ export function getGSheetConfig(): GoogleSheetConfig {
 
 export function saveGSheetConfig(cfg: GoogleSheetConfig): void {
   localStorage.setItem(STORAGE_KEYS.GSHEET_CONFIG, JSON.stringify(cfg));
+}
+
+/**
+ * Automatis & Langsung: Mengambil data dari Google Sheet secara otomatis (Apps Script / Gviz CSV fallback)
+ */
+export async function fetchAndSyncFromGoogleSheet(
+  monthToSync: string,
+  currentLocalRecords: MeterRecord[],
+  configOverride?: GoogleSheetConfig
+): Promise<{ records: MeterRecord[]; success: boolean; count: number }> {
+  const cfg = configOverride || getGSheetConfig();
+  const webAppUrl = (cfg.webAppUrl || DEFAULT_GSHEET_CONFIG.webAppUrl).trim();
+  const sheetId = cfg.sheetId || DEFAULT_GSHEET_CONFIG.sheetId;
+  const monthUpper = monthToSync.toUpperCase();
+
+  let pulledRecords: MeterRecord[] = [];
+  let isSuccess = false;
+
+  // 1. Percobaan Web App (Google Apps Script)
+  if (webAppUrl) {
+    try {
+      const targetUrl = `${webAppUrl}${webAppUrl.includes('?') ? '&' : '?'}sheetName=${encodeURIComponent(monthUpper)}&t=${Date.now()}`;
+      const res = await fetch(targetUrl);
+      if (res.ok) {
+        const json = await res.json();
+        if (json && (json.status === 'success' || Array.isArray(json.data))) {
+          const sheetData: MeterRecord[] = Array.isArray(json.data) ? json.data : [];
+          if (sheetData.length > 0) {
+            pulledRecords = sheetData;
+            isSuccess = true;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[AutoSync] Web App Apps Script fetch error for ${monthUpper}, switching to Gviz CSV...`, err);
+    }
+  }
+
+  // 2. Fallback otomatis ke Google Sheet Gviz CSV Export (bebas kendala CORS di Vercel/Web manapun)
+  if (!isSuccess && sheetId) {
+    try {
+      const gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(monthUpper)}&t=${Date.now()}`;
+      const res = await fetch(gvizUrl);
+      if (res.ok) {
+        const csvText = await res.text();
+        const parsed = parseCSVToRecords(csvText);
+        if (parsed.length > 0) {
+          pulledRecords = parsed;
+          isSuccess = true;
+        }
+      }
+    } catch (err) {
+      console.warn(`[AutoSync] Gviz CSV fetch error for ${monthUpper}:`, err);
+    }
+  }
+
+  if (isSuccess && pulledRecords.length > 0) {
+    const merged = safeMergeRecords(pulledRecords, currentLocalRecords, monthUpper);
+    saveRecords(merged);
+    const updatedCfg: GoogleSheetConfig = {
+      ...cfg,
+      selectedSheetTab: monthUpper,
+      lastSyncTime: new Date().toISOString(),
+      syncStatus: 'connected'
+    };
+    saveGSheetConfig(updatedCfg);
+    return { records: merged, success: true, count: pulledRecords.length };
+  }
+
+  return { records: currentLocalRecords, success: false, count: 0 };
 }
 
 // Logs
