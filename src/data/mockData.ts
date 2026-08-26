@@ -22,19 +22,6 @@ export const PETUGAS_LIST: PetugasName[] = [
 
 export const DEFAULT_USERS: UserAccount[] = [
   {
-    id: 'USR-001',
-    email: 'admin@pln.co.id',
-    password: 'admin',
-    nama: 'Admin JTC Transaksi Energi',
-    nip: '92150345Z',
-    jabatan: 'JTC Transaksi Energi & Pemeliharaan Meter',
-    unit: 'ULP Baguala (UP3 Ambon)',
-    role: 'SUPER_ADMIN',
-    status: 'AKTIF',
-    createdAt: '2026-01-01 08:00:00',
-    lastLogin: '2026-08-24 07:15:00'
-  },
-  {
     id: 'USR-002',
     email: 'fikiilham56@gmail.com',
     password: 'admin',
@@ -48,30 +35,17 @@ export const DEFAULT_USERS: UserAccount[] = [
     lastLogin: '2026-08-24 08:05:00'
   },
   {
-    id: 'USR-003',
-    email: 'spv.te.baguala@pln.co.id',
-    password: 'admin',
-    nama: 'SPV Transaksi Energi',
-    nip: '89130122Z',
-    jabatan: 'Supervisor Transaksi Energi',
+    id: 'USR-005',
+    email: 'muhammadnurbella20@gmail.com',
+    password: 'Pw12345!',
+    nama: 'ACHO',
+    nip: '94170999Z',
+    jabatan: 'Admin Gudang',
     unit: 'ULP Baguala',
-    role: 'SUPER_ADMIN',
+    role: 'ADMIN_GUDANG',
     status: 'AKTIF',
-    createdAt: '2026-01-01 08:00:00',
-    lastLogin: '2026-08-23 16:40:00'
-  },
-  {
-    id: 'USR-004',
-    email: 'pengawas.fso@pln.co.id',
-    password: 'admin',
-    nama: 'Pengawas Lapangan Baguala',
-    nip: '95180456Z',
-    jabatan: 'Pengawas Lapangan & Vendor',
-    unit: 'ULP Baguala',
-    role: 'PENGAWAS',
-    status: 'AKTIF',
-    createdAt: '2026-03-01 08:00:00',
-    lastLogin: '2026-08-23 17:10:00'
+    createdAt: '2026-08-25 00:00:00',
+    lastLogin: '2026-08-25 00:00:00'
   }
 ];
 

@@ -98,7 +98,27 @@ export function getStoredUsers(): UserAccount[] {
       saveUsers(DEFAULT_USERS);
       return DEFAULT_USERS;
     }
-    return JSON.parse(raw);
+    let parsed: UserAccount[] = JSON.parse(raw);
+    let updated = false;
+
+    // Filter out deleted default accounts if present in localStorage
+    const removedEmails = ['admin@pln.co.id', 'spv.te.baguala@pln.co.id', 'pengawas.fso@pln.co.id'];
+    const filtered = parsed.filter(u => !removedEmails.includes(u.email.toLowerCase()));
+    if (filtered.length !== parsed.length) {
+      parsed = filtered;
+      updated = true;
+    }
+
+    DEFAULT_USERS.forEach(defUser => {
+      if (!parsed.some(u => u.email.toLowerCase() === defUser.email.toLowerCase())) {
+        parsed.push(defUser);
+        updated = true;
+      }
+    });
+    if (updated) {
+      saveUsers(parsed);
+    }
+    return parsed;
   } catch {
     return DEFAULT_USERS;
   }

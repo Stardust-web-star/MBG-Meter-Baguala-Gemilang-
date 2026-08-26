@@ -57,7 +57,7 @@ export interface MeterRecord {
   createdBy?: string;
 }
 
-export type UserRole = 'SUPER_ADMIN' | 'ADMIN_TE' | 'PENGAWAS' | 'PETUGAS_LAPANGAN';
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN_TE' | 'PENGAWAS' | 'PETUGAS_LAPANGAN' | 'ADMIN_GUDANG';
 
 export interface UserAccount {
   id: string;

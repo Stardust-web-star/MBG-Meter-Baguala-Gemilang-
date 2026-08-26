@@ -123,10 +123,12 @@ export function ManagementUserMenu({
         return 'bg-purple-50 text-purple-700 border-purple-200 ring-purple-500/10';
       case 'ADMIN_TE':
         return 'bg-blue-50 text-blue-700 border-blue-200 ring-blue-500/10';
+      case 'ADMIN_GUDANG':
+        return 'bg-amber-50 text-amber-700 border-amber-200 ring-amber-500/10';
       case 'PETUGAS_LAPANGAN':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200 ring-emerald-500/10';
       default:
-        return 'bg-amber-50 text-amber-700 border-amber-200 ring-amber-500/10';
+        return 'bg-sky-50 text-sky-700 border-sky-200 ring-sky-500/10';
     }
   };
 
@@ -136,6 +138,8 @@ export function ManagementUserMenu({
         return 'Super Administrator';
       case 'ADMIN_TE':
         return 'Admin Transaksi Energi';
+      case 'ADMIN_GUDANG':
+        return 'Admin Gudang';
       case 'PETUGAS_LAPANGAN':
         return 'Petugas Lapangan';
       default:
@@ -486,6 +490,7 @@ export function ManagementUserMenu({
                         className="w-full px-3 py-2 bg-slate-50/80 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none transition-all"
                       >
                         <option value="ADMIN_TE">Admin JTC Transaksi Energi</option>
+                        <option value="ADMIN_GUDANG">Admin Gudang</option>
                         <option value="SUPER_ADMIN">Super Administrator</option>
                         <option value="PETUGAS_LAPANGAN">Petugas Lapangan / FSO</option>
                         <option value="PENGAWAS">Pengawas K3 / Logistik</option>
