@@ -1,0 +1,6 @@
+{
+  "name": "MBG - Meter Baguala Gemilang",
+  "description": "Dashboard Monitoring Penggantian kWh Meter PLN ULP Baguala terintegrasi Google Sheet, Rekapitulasi Data, Analisa Kinerja, dan Dokumen SPK New AP2T.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
