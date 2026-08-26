@@ -13,8 +13,8 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ onLoginSuccess, isOpen = true, onClose }: LoginModalProps) {
-  const [emailOrId, setEmailOrId] = useState('fikiilham56@gmail.com');
-  const [password, setPassword] = useState('admin');
+  const [emailOrId, setEmailOrId] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -137,7 +137,7 @@ export function LoginModal({ onLoginSuccess, isOpen = true, onClose }: LoginModa
                       id="login-email-input"
                       type="text"
                       required
-                      placeholder="fikiilham56@gmail.com atau NIP"
+                      placeholder="Masukkan Email / NIP..."
                       value={emailOrId}
                       onChange={(e) => setEmailOrId(e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 shadow-sm"
