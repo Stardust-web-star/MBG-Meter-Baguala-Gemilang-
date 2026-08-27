@@ -519,7 +519,7 @@ export function RekapMenu({
 
       {/* Edit Record Modal */}
       {editingRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4 overflow-y-auto">
           <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-fadeIn">
             <div className="bg-slate-900 p-4 text-white flex items-center justify-between">
               <h3 className="font-bold text-sm flex items-center gap-2">
@@ -697,7 +697,7 @@ export function RekapMenu({
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4">
           <div className="bg-white rounded-xl p-5 max-w-sm w-full shadow-2xl border border-slate-200 space-y-3 animate-fadeIn">
             <h3 className="text-sm font-bold text-slate-900">Konfirmasi Hapus Data</h3>
             <p className="text-xs text-slate-600 leading-relaxed">

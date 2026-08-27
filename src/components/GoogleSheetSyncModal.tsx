@@ -244,7 +244,7 @@ export function GoogleSheetSyncModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-3 sm:p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl overflow-hidden flex flex-col max-h-[94vh]">
         {/* Header */}
         <div className="bg-gradient-to-r from-slate-950 via-blue-950 to-slate-950 p-4 sm:p-5 text-white flex items-center justify-between">

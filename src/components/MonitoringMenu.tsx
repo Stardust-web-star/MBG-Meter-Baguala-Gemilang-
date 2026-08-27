@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { MeterRecord, PetugasName, JenisMeter, AlasanGantiMeter, StatusGanti } from '../types';
 import { PETUGAS_LIST } from '../data/mockData';
@@ -470,111 +471,119 @@ export function MonitoringMenu({
         </div>
       </div>
 
-      {/* Drill-down Modal with AnimatePresence */}
-      <AnimatePresence>
-        {activeDrilldownRow && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4"
-          >
-            <motion.div 
-              initial={{ scale: 0.94, opacity: 0, y: 15 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.94, opacity: 0, y: 15 }}
-              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-              className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden"
-            >
-              <div className="bg-slate-900 p-4 text-white flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-sm flex items-center gap-2">
-                    <span>Daftar Pelanggan Petugas:</span>
-                    <span className="bg-blue-600 text-white font-extrabold px-2 py-0.5 rounded">
-                      {activeDrilldownRow.petugas}
-                    </span>
-                    {activeDrilldownRow.status && (
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                        activeDrilldownRow.status === 'SELESAI' ? 'bg-emerald-600' : 'bg-amber-600'
-                      }`}>
-                        {activeDrilldownRow.status}
+      {/* Drill-down Modal with createPortal & AnimatePresence */}
+      {createPortal(
+        <AnimatePresence>
+          {activeDrilldownRow && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+              {/* Fullscreen Backdrop Blur Overlay blurring sidebar, header, footer, and content */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setActiveDrilldownRow(null)}
+                className="fixed inset-0 bg-slate-950/45 backdrop-blur-md" 
+              />
+
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 16 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 16 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative z-10 bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-4xl max-h-[88vh] flex flex-col overflow-hidden my-auto"
+              >
+                <div className="bg-slate-900 p-4 text-white flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-sm flex items-center gap-2">
+                      <span>Daftar Pelanggan Petugas:</span>
+                      <span className="bg-blue-600 text-white font-extrabold px-2 py-0.5 rounded">
+                        {activeDrilldownRow.petugas}
                       </span>
-                    )}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Total {drillDownRecords.length} Pelanggan
-                  </p>
+                      {activeDrilldownRow.status && (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                          activeDrilldownRow.status === 'SELESAI' ? 'bg-emerald-600' : 'bg-amber-600'
+                        }`}>
+                          {activeDrilldownRow.status}
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Total {drillDownRecords.length} Pelanggan
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveDrilldownRow(null)}
+                    className="text-slate-400 hover:text-white text-sm font-bold p-1 cursor-pointer transition-colors"
+                  >
+                    ✕
+                  </button>
                 </div>
-                <button
-                  onClick={() => setActiveDrilldownRow(null)}
-                  className="text-slate-400 hover:text-white text-sm font-bold p-1 cursor-pointer"
-                >
-                  ✕
-                </button>
-              </div>
 
-              <div className="p-4 overflow-y-auto flex-1">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 text-[10px] uppercase">
-                      <th className="p-2 w-8">No</th>
-                      <th className="p-2">ID Pelanggan</th>
-                      <th className="p-2">Nama Pelanggan</th>
-                      <th className="p-2">Trf/Daya</th>
-                      <th className="p-2">Meter Lama</th>
-                      <th className="p-2">Meter Baru</th>
-                      <th className="p-2 whitespace-nowrap">Jenis</th>
-                      <th className="p-2">Alasan</th>
-                      <th className="p-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-[11px]">
-                    {drillDownRecords.map((r, i) => (
-                      <tr key={r.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="p-2 text-slate-400 font-mono">{i + 1}</td>
-                        <td className="p-2 font-mono font-bold text-slate-900">{r.idPelanggan}</td>
-                        <td className="p-2 font-semibold text-slate-800">{r.namaPelanggan}</td>
-                        <td className="p-2 font-mono">{r.tarif}/{r.daya}</td>
-                        <td className="p-2 font-mono text-slate-600">{r.noMeterLama || '-'}</td>
-                        <td className="p-2 font-mono font-bold text-blue-700">{r.noMeterBaru || '-'}</td>
-                        <td className="p-2 whitespace-nowrap">
-                          <span className={`inline-block whitespace-nowrap text-[9.5px] px-2 py-0.5 rounded font-bold uppercase tracking-tight ${
-                            r.jenis === 'PRA BAYAR' || String(r.jenis).toUpperCase().includes('PRA')
-                              ? 'bg-sky-50 text-sky-700 border border-sky-200'
-                              : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                          }`}>
-                            {r.jenis}
-                          </span>
-                        </td>
-                        <td className="p-2 text-slate-600 text-[10px]">{r.gantiMeter}</td>
-                        <td className="p-2">
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                            r.status === 'SELESAI' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                          }`}>
-                            {r.status}
-                          </span>
-                        </td>
+                <div className="p-4 overflow-y-auto flex-1">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 text-[10px] uppercase">
+                        <th className="p-2 w-8">No</th>
+                        <th className="p-2">ID Pelanggan</th>
+                        <th className="p-2">Nama Pelanggan</th>
+                        <th className="p-2">Trf/Daya</th>
+                        <th className="p-2">Meter Lama</th>
+                        <th className="p-2">Meter Baru</th>
+                        <th className="p-2 whitespace-nowrap">Jenis</th>
+                        <th className="p-2">Alasan</th>
+                        <th className="p-2">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-[11px]">
+                      {drillDownRecords.map((r, i) => (
+                        <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="p-2 text-slate-400 font-mono">{i + 1}</td>
+                          <td className="p-2 font-mono font-bold text-slate-900">{r.idPelanggan}</td>
+                          <td className="p-2 font-semibold text-slate-800">{r.namaPelanggan}</td>
+                          <td className="p-2 font-mono">{r.tarif}/{r.daya}</td>
+                          <td className="p-2 font-mono text-slate-600">{r.noMeterLama || '-'}</td>
+                          <td className="p-2 font-mono font-bold text-blue-700">{r.noMeterBaru || '-'}</td>
+                          <td className="p-2 whitespace-nowrap">
+                            <span className={`inline-block whitespace-nowrap text-[9.5px] px-2 py-0.5 rounded font-bold uppercase tracking-tight ${
+                              r.jenis === 'PRA BAYAR' || String(r.jenis).toUpperCase().includes('PRA')
+                                ? 'bg-sky-50 text-sky-700 border border-sky-200'
+                                : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                            }`}>
+                              {r.jenis}
+                            </span>
+                          </td>
+                          <td className="p-2 text-slate-600 text-[10px]">{r.gantiMeter}</td>
+                          <td className="p-2">
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                              r.status === 'SELESAI' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                            }`}>
+                              {r.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-              <div className="p-3 bg-slate-50 border-t border-slate-200 flex justify-end">
-                <motion.button
-                  type="button"
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setActiveDrilldownRow(null)}
-                  className="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded cursor-pointer shadow-xs"
-                >
-                  Tutup
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                <div className="p-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setActiveDrilldownRow(null)}
+                    className="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-lg cursor-pointer shadow-xs"
+                  >
+                    Tutup
+                  </motion.button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }

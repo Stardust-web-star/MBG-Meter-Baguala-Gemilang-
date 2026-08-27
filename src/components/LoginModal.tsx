@@ -10,9 +10,10 @@ interface LoginModalProps {
   isOpen?: boolean;
   onClose?: () => void;
   users?: UserAccount[];
+  noticeMessage?: string | null;
 }
 
-export function LoginModal({ onLoginSuccess, isOpen = true, onClose }: LoginModalProps) {
+export function LoginModal({ onLoginSuccess, isOpen = true, onClose, noticeMessage }: LoginModalProps) {
   const [emailOrId, setEmailOrId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -114,6 +115,16 @@ export function LoginModal({ onLoginSuccess, isOpen = true, onClose }: LoginModa
                 <span className="font-medium">Secure Portal</span>
               </div>
             </div>
+
+            {noticeMessage && !errorMsg && (
+              <div className="mb-5 p-3.5 bg-amber-50 border border-amber-300 rounded-xl flex items-start gap-2.5 text-xs text-amber-900 shadow-sm">
+                <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-amber-950">Sesi Berakhir</div>
+                  <div>{noticeMessage}</div>
+                </div>
+              </div>
+            )}
 
             {errorMsg && (
               <div className="mb-5 p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2.5 text-xs text-red-700 animate-shake">

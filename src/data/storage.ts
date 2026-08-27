@@ -166,11 +166,15 @@ export function deleteUser(id: string, actor?: string): boolean {
   return true;
 }
 
-// Session
+// Session (stored in sessionStorage so closing the tab automatically logs out the user)
 export function getCurrentUser(): UserAccount | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-    if (!raw) return null;
+    const raw = sessionStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+    if (!raw) {
+      // Clear any legacy localStorage session to enforce login on new tab / tab close
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      return null;
+    }
     return JSON.parse(raw);
   } catch {
     return null;
@@ -179,9 +183,11 @@ export function getCurrentUser(): UserAccount | null {
 
 export function setCurrentUser(user: UserAccount | null): void {
   if (!user) {
+    sessionStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
     localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
   } else {
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+    sessionStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER); // Ensure not persisted across tab closes
   }
 }
 

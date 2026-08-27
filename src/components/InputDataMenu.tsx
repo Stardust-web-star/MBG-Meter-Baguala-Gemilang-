@@ -555,7 +555,7 @@ export function InputDataMenu({ onAddRecord, onNavigateToRekap }: InputDataMenuP
 
       {/* Confirmation Modal */}
       {showConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4">
           <div className="bg-white rounded-xl p-5 max-w-md w-full shadow-2xl border border-slate-200 space-y-3 animate-fadeIn">
             <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center mx-auto">
               <Layers className="w-5 h-5" />
@@ -607,7 +607,7 @@ export function InputDataMenu({ onAddRecord, onNavigateToRekap }: InputDataMenuP
 
       {/* Success Notification Modal */}
       {showSuccessModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-4">
           <div className="bg-white rounded-xl p-5 max-w-sm w-full shadow-2xl border border-slate-200 space-y-3 animate-fadeIn text-center">
             <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-6 h-6" />

@@ -45,6 +45,7 @@ export default function App() {
   const [currentUser, setUser] = useState<UserAccount | null>(null);
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [inactivityNotice, setInactivityNotice] = useState<string | null>(null);
 
   // Main navigation state
   const [activeMenu, setActiveMenu] = useState<MenuId>('monitoring');
@@ -122,16 +123,81 @@ export default function App() {
     return () => clearInterval(intervalId);
   }, []);
 
+  // Automatic Logout after 10 Minutes (600,000 ms) of User Inactivity
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+    let timeoutId: NodeJS.Timeout;
+    let lastActivityTimestamp = Date.now();
+
+    const triggerAutoLogout = () => {
+      setCurrentUser(null);
+      setUser(null);
+      setInactivityNotice('Sesi Anda telah berakhir karena tidak ada aktivitas selama 10 menit. Silakan login kembali.');
+      setIsLoginModalOpen(true);
+    };
+
+    const handleUserActivity = () => {
+      const now = Date.now();
+      // Throttle event checks to maximum once per second for performance
+      if (now - lastActivityTimestamp < 1000) return;
+      lastActivityTimestamp = now;
+
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(triggerAutoLogout, INACTIVITY_TIMEOUT_MS);
+    };
+
+    // Initial timeout timer set
+    timeoutId = setTimeout(triggerAutoLogout, INACTIVITY_TIMEOUT_MS);
+
+    // Register interaction event listeners
+    const userEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click', 'wheel'];
+    userEvents.forEach(evtName => {
+      window.addEventListener(evtName, handleUserActivity, { passive: true });
+    });
+
+    // Periodic check (every 5s) to handle backgrounded tabs or computer sleep
+    const intervalCheck = setInterval(() => {
+      if (Date.now() - lastActivityTimestamp >= INACTIVITY_TIMEOUT_MS) {
+        triggerAutoLogout();
+      }
+    }, 5000);
+
+    // Immediate check when tab visibility changes back to active
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        if (Date.now() - lastActivityTimestamp >= INACTIVITY_TIMEOUT_MS) {
+          triggerAutoLogout();
+        } else {
+          handleUserActivity();
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      clearInterval(intervalCheck);
+      userEvents.forEach(evtName => {
+        window.removeEventListener(evtName, handleUserActivity);
+      });
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [currentUser]);
+
   // Auth Handlers
   const handleLoginSuccess = (user: UserAccount) => {
     setUser(user);
     setCurrentUser(user);
+    setInactivityNotice(null);
     setIsLoginModalOpen(false);
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
     setUser(null);
+    setInactivityNotice(null);
     setIsLoginModalOpen(true);
   };
 
@@ -250,6 +316,7 @@ export default function App() {
               onClose={() => {}}
               onLoginSuccess={handleLoginSuccess}
               users={users}
+              noticeMessage={inactivityNotice}
             />
           </motion.div>
         ) : (
@@ -472,6 +539,7 @@ export default function App() {
           onClose={() => setIsLoginModalOpen(false)}
           onLoginSuccess={handleLoginSuccess}
           users={users}
+          noticeMessage={inactivityNotice}
         />
       )}
     </div>
