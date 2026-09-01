@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Zap, Database } from 'lucide-react';
+import { getRealCurrentMonthInfo } from './utils/monthUtils';
 import { 
   MenuId, 
   MeterRecord, 
@@ -53,7 +54,7 @@ export default function App() {
 
   // Data & Google Sheets state
   const [records, setRecords] = useState<MeterRecord[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState('AGUSTUS');
+  const [selectedMonth, setSelectedMonth] = useState(() => getRealCurrentMonthInfo().id);
   const [isGSheetModalOpen, setIsGSheetModalOpen] = useState(false);
   const [sheetConfig, setSheetConfig] = useState<GoogleSheetConfig>(getGSheetConfig());
   const [isSyncingSheet, setIsSyncingSheet] = useState(false);

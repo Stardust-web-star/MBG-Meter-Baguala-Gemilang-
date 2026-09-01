@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { GoogleSheetConfig, MeterRecord } from '../types';
+import { getRealCurrentMonthInfo } from '../utils/monthUtils';
 import { exportRecordsToCSV, parseCSVToRecords, saveRecords, safeMergeRecords } from '../data/storage';
 import { GOOGLE_APPS_SCRIPT_CODE } from '../data/appsScriptCode';
 import { 
@@ -44,7 +45,7 @@ export function GoogleSheetSyncModal({
 }: GoogleSheetSyncModalProps) {
   const updateRecords = onImportRecords || onUpdateRecords || (() => {});
   const [sheetUrl, setSheetUrl] = useState(config.sheetUrl || 'https://docs.google.com/spreadsheets/d/1UYWV2Lj2YyR-jIKpQR5G4jyiIBaZXpuX6TSBV_9txEE/edit?gid=0#gid=0');
-  const [sheetTab, setSheetTab] = useState(config.selectedSheetTab || 'AGUSTUS');
+  const [sheetTab, setSheetTab] = useState(config.selectedSheetTab || getRealCurrentMonthInfo().id);
   const [webAppUrl, setWebAppUrl] = useState(config.webAppUrl || 'https://script.google.com/macros/s/AKfycbzUPTMp0lU2oz2lNmAxn416FmRN5isMdzXMtKzOWMRJydmvTyfzn7bs5Qvs2fJu3ohi/exec');
   const [isSyncing, setIsSyncing] = useState(false);
   const [isPushing, setIsPushing] = useState(false);

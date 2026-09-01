@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserAccount, MenuId } from '../types';
+import { getAvailableMonthsList, getMonthStatusInfo } from '../utils/monthUtils';
 import { 
   FileSpreadsheet, 
   ChevronDown, 
@@ -30,19 +31,7 @@ interface NavbarProps {
   activeMenuTitle?: string;
 }
 
-interface MonthItem {
-  id: string;
-  label: string;
-  year: string;
-  status: string;
-  statusColor: string;
-}
 
-const AVAILABLE_MONTHS: MonthItem[] = [
-  { id: 'AGUSTUS', label: 'AGUSTUS', year: '2026', status: 'Aktif', statusColor: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
-  { id: 'JULI', label: 'JULI', year: '2026', status: 'Selesai', statusColor: 'bg-blue-100 text-blue-800 border-blue-200' },
-  { id: 'SEPTEMBER', label: 'SEPTEMBER', year: '2026', status: 'Rencana', statusColor: 'bg-amber-100 text-amber-800 border-amber-200' },
-];
 
 export function Navbar({
   currentUser,
@@ -85,14 +74,23 @@ export function Navbar({
     return name.substring(0, 2).toUpperCase();
   };
 
+  const availableMonths = useMemo(() => getAvailableMonthsList(), []);
+
   // Resolve current active month display
-  const currentMonthItem = AVAILABLE_MONTHS.find(m => m.id.toUpperCase() === selectedMonth.toUpperCase()) || {
-    id: selectedMonth,
-    label: selectedMonth,
-    year: '2026',
-    status: 'Aktif',
-    statusColor: 'bg-emerald-100 text-emerald-800 border-emerald-200'
-  };
+  const currentMonthItem = useMemo(() => {
+    const found = availableMonths.find(m => m.id.toUpperCase() === selectedMonth.toUpperCase());
+    if (found) return found;
+
+    const info = getMonthStatusInfo(selectedMonth, '2026');
+    return {
+      id: selectedMonth,
+      label: selectedMonth.toUpperCase(),
+      year: '2026',
+      status: info.status,
+      statusColor: info.statusColor,
+      description: info.description
+    };
+  }, [selectedMonth, availableMonths]);
 
   return (
     <header className="sticky top-2.5 sm:top-3.5 z-40 mx-3 sm:mx-5 lg:mx-6 mt-2.5 sm:mt-3.5 mb-1 px-3 sm:px-5 lg:px-6 h-14 sm:h-16 rounded-2xl bg-white/95 backdrop-blur-xl border border-white/80 shadow-[0_12px_36px_-10px_rgba(0,50,110,0.14)] flex items-center justify-between transition-all">
@@ -188,7 +186,7 @@ export function Navbar({
 
                   {/* Month Options List */}
                   <div className="py-1 space-y-1">
-                    {AVAILABLE_MONTHS.map((item) => {
+                    {availableMonths.map((item) => {
                       const isSelected = selectedMonth.toUpperCase() === item.id.toUpperCase();
                       return (
                         <motion.button
@@ -220,7 +218,7 @@ export function Navbar({
                                 {item.label} {item.year}
                               </p>
                               <p className={`text-[10px] font-medium truncate ${isSelected ? 'text-blue-100' : 'text-slate-400'}`}>
-                                {item.id === 'AGUSTUS' ? 'Periode Berjalan (Aktif)' : item.id === 'JULI' ? 'Arsip Periode Lalu' : 'Periode Rencana'}
+                                {item.description}
                               </p>
                             </div>
                           </div>
