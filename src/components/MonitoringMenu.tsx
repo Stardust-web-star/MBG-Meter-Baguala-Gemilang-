@@ -183,18 +183,18 @@ export function MonitoringMenu({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.05 }}
           whileHover={{ y: -3, scale: 1.01 }}
-          className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs hover:shadow-md transition-shadow flex flex-col justify-between"
+          className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between"
         >
           <div>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">
               Total Target Meter
             </p>
-            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 font-sans tracking-tight">
+            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 font-sans tracking-tight">
               {monitoringData.grandTotal.toLocaleString()} <span className="text-xs font-normal text-slate-400 ml-1">Unit</span>
             </h3>
           </div>
           <div className="mt-3">
-            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
               <motion.div 
                 initial={{ width: 0 }}
                 animate={{ width: `${monitoringData.overallRate}%` }}
@@ -202,7 +202,7 @@ export function MonitoringMenu({
                 className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full"
               />
             </div>
-            <p className="text-[10px] text-slate-400 mt-1.5 font-medium">
+            <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-1.5 font-medium">
               Realisasi: {monitoringData.overallRate}% bulan ini
             </p>
           </div>
@@ -214,18 +214,18 @@ export function MonitoringMenu({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.1 }}
           whileHover={{ y: -3, scale: 1.01 }}
-          className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs hover:shadow-md transition-shadow flex flex-col justify-between"
+          className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between"
         >
           <div>
-            <p className="text-[10px] text-green-600 font-bold uppercase tracking-wider mb-1">
+            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider mb-1">
               Status Selesai
             </p>
-            <h3 className="text-2xl sm:text-3xl font-black text-green-600 font-sans tracking-tight">
+            <h3 className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-sans tracking-tight">
               {monitoringData.totalSelesai.toLocaleString()} <span className="text-xs font-normal text-slate-400 ml-1">({monitoringData.overallRate}%)</span>
             </h3>
           </div>
-          <p className="text-[10px] text-slate-400 mt-3 font-medium flex items-center gap-1">
-            <span className="text-green-600 font-bold">●</span> Terpasang & Tervalidasi AP2T
+          <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-3 font-medium flex items-center gap-1">
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold">●</span> Terpasang & Tervalidasi AP2T
           </p>
         </motion.div>
 
@@ -235,17 +235,17 @@ export function MonitoringMenu({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.15 }}
           whileHover={{ y: -3, scale: 1.01 }}
-          className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs hover:shadow-md transition-shadow flex flex-col justify-between"
+          className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between"
         >
           <div>
-            <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mb-1">
+            <p className="text-[10px] text-rose-500 dark:text-rose-400 font-bold uppercase tracking-wider mb-1">
               Belum Selesai
             </p>
-            <h3 className="text-2xl sm:text-3xl font-black text-red-500 font-sans tracking-tight">
+            <h3 className="text-2xl sm:text-3xl font-black text-rose-500 dark:text-rose-400 font-sans tracking-tight">
               {monitoringData.totalBelum.toLocaleString()} <span className="text-xs font-normal text-slate-400 ml-1">({monitoringData.grandTotal > 0 ? ((monitoringData.totalBelum / monitoringData.grandTotal) * 100).toFixed(0) : 0}%)</span>
             </h3>
           </div>
-          <p className="text-[10px] text-slate-400 mt-3 font-medium">
+          <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-3 font-medium">
             Prioritas: Meter Gangguan & Meter Tua
           </p>
         </motion.div>
@@ -256,216 +256,216 @@ export function MonitoringMenu({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.2 }}
           whileHover={{ y: -3, scale: 1.01 }}
-          className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs hover:shadow-md transition-shadow flex flex-col justify-between"
+          className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between"
         >
           <div>
-            <p className="text-[10px] text-blue-600 font-bold uppercase tracking-wider mb-1">
+            <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider mb-1">
               Petugas Aktif
             </p>
-            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 font-sans tracking-tight">
+            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 font-sans tracking-tight">
               {activeOfficersCount} <span className="text-xs font-normal text-slate-400 ml-1">Personel</span>
             </h3>
           </div>
-          <p className="text-[10px] text-slate-400 mt-3 font-medium truncate">
+          <p className="text-[10px] text-slate-400 dark:text-slate-400 mt-3 font-medium truncate">
             Area Baguala & Sekitarnya (JTC)
           </p>
         </motion.div>
       </div>
 
       {/* Main Table: High Density Realisasi Penggantian KWH */}
-      <div className="w-full bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col overflow-hidden">
+      <div className="w-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col overflow-hidden transition-colors">
         {/* Header Controls */}
-          <div className="px-5 py-3 border-b border-slate-200 bg-white flex flex-wrap justify-between items-center gap-2">
-            <div className="flex items-center space-x-2">
-              <h4 className="text-sm font-bold text-slate-800">
-                Daftar Realisasi Penggantian KWH
-              </h4>
-              <span className="text-[10px] bg-slate-100 text-slate-600 font-mono px-2 py-0.5 rounded font-semibold uppercase">
-                {selectedMonth}
-              </span>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              {/* Search input */}
-              <div className="relative">
-                <Search className="w-3 h-3 text-slate-400 absolute left-2 top-2" />
-                <input
-                  type="text"
-                  placeholder="Cari petugas..."
-                  value={searchPetugas}
-                  onChange={(e) => setSearchPetugas(e.target.value)}
-                  className="pl-6 pr-2.5 py-1 bg-slate-50 border border-slate-200 rounded text-xs text-slate-800 w-32 sm:w-36 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Filter Tabs */}
-              <div className="flex rounded border border-slate-200 bg-slate-50 p-0.5 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setFilterView('all')}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
-                    filterView === 'all' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Semua
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterView('has_pending')}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
-                    filterView === 'has_pending' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Belum
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterView('completed_only')}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
-                    filterView === 'completed_only' ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Selesai
-                </button>
-              </div>
-
-              {/* Export Button */}
-              <button
-                onClick={handleExportTable}
-                className="text-[11px] px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white font-bold rounded flex items-center space-x-1 shadow-2xs transition cursor-pointer"
-                title="Export Excel / CSV"
-              >
-                <Download className="w-3 h-3" />
-                <span className="hidden sm:inline">Export Excel</span>
-              </button>
-            </div>
+        <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-wrap justify-between items-center gap-2">
+          <div className="flex items-center space-x-2">
+            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+              Daftar Realisasi Penggantian KWH
+            </h4>
+            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono px-2 py-0.5 rounded font-semibold uppercase">
+              {selectedMonth}
+            </span>
           </div>
 
-          {/* High Density Table */}
-          <div className="overflow-x-auto max-h-[520px] overflow-y-auto">
-            <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 z-10">
-                <tr className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  <th className="px-4 py-2.5">PETUGAS</th>
-                  <th className="px-3 py-2.5 text-center w-20">Belum</th>
-                  <th className="px-3 py-2.5 text-center w-20">Selesai</th>
-                  <th className="px-3 py-2.5 text-center w-24">Grand Total</th>
-                  <th className="px-3 py-2.5 text-center w-20">Rate</th>
-                  <th className="px-3 py-2.5 text-center w-16">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="text-[11px] text-slate-700 divide-y divide-slate-100">
-                {filteredRows.map((row, idx) => (
-                  <tr 
-                    key={row.petugas} 
-                    className="hover:bg-slate-50 transition"
-                  >
-                    <td className="px-4 py-2 font-bold text-slate-900">
-                      {row.petugas}
-                    </td>
+          <div className="flex items-center space-x-2">
+            {/* Search input */}
+            <div className="relative">
+              <Search className="w-3 h-3 text-slate-400 absolute left-2 top-2" />
+              <input
+                type="text"
+                placeholder="Cari petugas..."
+                value={searchPetugas}
+                onChange={(e) => setSearchPetugas(e.target.value)}
+                className="pl-6 pr-2.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 w-32 sm:w-36 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
 
-                    <td 
-                      onClick={() => row.belum > 0 && setActiveDrilldownRow({ petugas: row.petugas, status: 'BELUM' })}
-                      className={`px-3 py-2 text-center font-mono font-bold ${
-                        row.belum > 0 
-                          ? 'text-amber-700 bg-amber-50/70 hover:bg-amber-100 cursor-pointer font-black' 
-                          : 'text-slate-300'
-                      }`}
-                    >
-                      {row.belum > 0 ? row.belum : '0'}
-                    </td>
+            {/* Filter Tabs */}
+            <div className="flex rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-0.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setFilterView('all')}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
+                  filterView === 'all' ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Semua
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterView('has_pending')}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
+                  filterView === 'has_pending' ? 'bg-amber-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Belum
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterView('completed_only')}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
+                  filterView === 'completed_only' ? 'bg-emerald-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Selesai
+              </button>
+            </div>
 
-                    <td 
-                      onClick={() => row.selesai > 0 && setActiveDrilldownRow({ petugas: row.petugas, status: 'SELESAI' })}
-                      className="px-3 py-2 text-center font-mono font-bold text-green-700 hover:bg-green-50 cursor-pointer"
-                    >
-                      {row.selesai}
-                    </td>
-
-                    <td 
-                      onClick={() => setActiveDrilldownRow({ petugas: row.petugas })}
-                      className="px-3 py-2 text-center font-mono font-black text-slate-900 bg-slate-50/80 hover:bg-slate-100 cursor-pointer"
-                    >
-                      {row.total}
-                    </td>
-
-                    <td className="px-3 py-2 text-center">
-                      <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] uppercase ${
-                        row.completionRate >= 80 
-                          ? 'bg-green-100 text-green-700' 
-                          : row.completionRate >= 50 
-                          ? 'bg-blue-100 text-blue-700' 
-                          : 'bg-amber-100 text-amber-700'
-                      }`}>
-                        {row.completionRate}%
-                      </span>
-                    </td>
-
-                    <td className="px-3 py-2 text-center">
-                      <button
-                        onClick={() => setActiveDrilldownRow({ petugas: row.petugas })}
-                        className="text-blue-600 hover:text-blue-800 text-[10px] font-bold p-1 hover:bg-blue-50 rounded cursor-pointer"
-                        title="Lihat Rincian"
-                      >
-                        Detail
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="sticky bottom-0 bg-slate-100 border-t-2 border-slate-300 font-extrabold text-xs">
-                <tr>
-                  <td className="px-4 py-2.5 uppercase font-black text-slate-900">Total</td>
-                  <td className="px-3 py-2.5 text-center font-mono font-black text-amber-700">
-                    {monitoringData.totalBelum}
-                  </td>
-                  <td className="px-3 py-2.5 text-center font-mono font-black text-green-700">
-                    {monitoringData.totalSelesai}
-                  </td>
-                  <td className="px-3 py-2.5 text-center font-mono font-black text-slate-900 bg-slate-200">
-                    {monitoringData.grandTotal}
-                  </td>
-                  <td className="px-3 py-2.5 text-center font-bold text-slate-700">
-                    {monitoringData.overallRate}%
-                  </td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
+            {/* Export Button */}
+            <button
+              onClick={handleExportTable}
+              className="text-[11px] px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded flex items-center space-x-1 shadow-2xs transition cursor-pointer"
+              title="Export Excel / CSV"
+            >
+              <Download className="w-3 h-3" />
+              <span className="hidden sm:inline">Export Excel</span>
+            </button>
           </div>
         </div>
 
+        {/* High Density Table */}
+        <div className="overflow-x-auto max-h-[520px] overflow-y-auto">
+          <table className="w-full text-left border-collapse">
+            <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700 z-10">
+              <tr className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="px-4 py-2.5">PETUGAS</th>
+                <th className="px-3 py-2.5 text-center w-20">Belum</th>
+                <th className="px-3 py-2.5 text-center w-20">Selesai</th>
+                <th className="px-3 py-2.5 text-center w-24">Grand Total</th>
+                <th className="px-3 py-2.5 text-center w-20">Rate</th>
+                <th className="px-3 py-2.5 text-center w-16">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="text-[11px] text-slate-700 dark:text-slate-300 divide-y divide-slate-100 dark:divide-slate-800">
+              {filteredRows.map((row, idx) => (
+                <tr 
+                  key={row.petugas} 
+                  className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition"
+                >
+                  <td className="px-4 py-2 font-bold text-slate-900 dark:text-slate-100">
+                    {row.petugas}
+                  </td>
+
+                  <td 
+                    onClick={() => row.belum > 0 && setActiveDrilldownRow({ petugas: row.petugas, status: 'BELUM' })}
+                    className={`px-3 py-2 text-center font-mono font-bold ${
+                      row.belum > 0 
+                        ? 'text-amber-700 dark:text-amber-400 bg-amber-50/70 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/40 cursor-pointer font-black' 
+                        : 'text-slate-300 dark:text-slate-600'
+                    }`}
+                  >
+                    {row.belum > 0 ? row.belum : '0'}
+                  </td>
+
+                  <td 
+                    onClick={() => row.selesai > 0 && setActiveDrilldownRow({ petugas: row.petugas, status: 'SELESAI' })}
+                    className="px-3 py-2 text-center font-mono font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer"
+                  >
+                    {row.selesai}
+                  </td>
+
+                  <td 
+                    onClick={() => setActiveDrilldownRow({ petugas: row.petugas })}
+                    className="px-3 py-2 text-center font-mono font-black text-slate-900 dark:text-slate-100 bg-slate-50/80 dark:bg-slate-800/70 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    {row.total}
+                  </td>
+
+                  <td className="px-3 py-2 text-center">
+                    <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] uppercase ${
+                      row.completionRate >= 80 
+                        ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50' 
+                        : row.completionRate >= 50 
+                        ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50' 
+                        : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50'
+                    }`}>
+                      {row.completionRate}%
+                    </span>
+                  </td>
+
+                  <td className="px-3 py-2 text-center">
+                    <button
+                      onClick={() => setActiveDrilldownRow({ petugas: row.petugas })}
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-[10px] font-bold p-1 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded cursor-pointer"
+                      title="Lihat Rincian"
+                    >
+                      Detail
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="sticky bottom-0 bg-slate-100 dark:bg-slate-800 border-t-2 border-slate-300 dark:border-slate-700 font-extrabold text-xs">
+              <tr>
+                <td className="px-4 py-2.5 uppercase font-black text-slate-900 dark:text-slate-100">Total</td>
+                <td className="px-3 py-2.5 text-center font-mono font-black text-amber-700 dark:text-amber-400">
+                  {monitoringData.totalBelum}
+                </td>
+                <td className="px-3 py-2.5 text-center font-mono font-black text-emerald-700 dark:text-emerald-400">
+                  {monitoringData.totalSelesai}
+                </td>
+                <td className="px-3 py-2.5 text-center font-mono font-black text-slate-900 dark:text-slate-100 bg-slate-200 dark:bg-slate-700">
+                  {monitoringData.grandTotal}
+                </td>
+                <td className="px-3 py-2.5 text-center font-bold text-slate-700 dark:text-slate-300">
+                  {monitoringData.overallRate}%
+                </td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
       {/* Chart Section */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3 transition-colors">
         <div className="flex items-center justify-between">
-          <h4 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-            <BarChart3 className="w-4 h-4 text-blue-600" />
+          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+            <BarChart3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             <span>Grafik Realisasi Penggantian KWH per Petugas</span>
           </h4>
-          <span className="text-[10px] text-slate-400 font-mono">
-            Agustus 2026
+          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono uppercase">
+            {selectedMonth}
           </span>
         </div>
 
         <div className="h-56 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.25} />
               <XAxis 
                 dataKey="name" 
                 interval={0} 
                 angle={-45} 
                 textAnchor="end" 
-                tick={{ fontSize: 9, fill: '#64748B', fontWeight: 600 }} 
+                tick={{ fontSize: 9, fill: '#94A3B8', fontWeight: 600 }} 
               />
               <YAxis tick={{ fontSize: 10, fill: '#94A3B8' }} />
               <Tooltip 
-                contentStyle={{ backgroundColor: '#0F172A', color: '#fff', borderRadius: '8px', border: 'none', fontSize: '11px' }}
+                contentStyle={{ backgroundColor: '#0F172A', color: '#fff', borderRadius: '8px', border: '1px solid #334155', fontSize: '11px' }}
                 itemStyle={{ color: '#fff' }}
               />
               <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '6px' }} />
-              <Bar dataKey="Selesai" fill="#16A34A" radius={[3, 3, 0, 0]} name="Selesai" />
-              <Bar dataKey="Belum" fill="#EA580C" radius={[3, 3, 0, 0]} name="Belum Selesai" />
+              <Bar dataKey="Selesai" fill="#10B981" radius={[3, 3, 0, 0]} name="Selesai" />
+              <Bar dataKey="Belum" fill="#F59E0B" radius={[3, 3, 0, 0]} name="Belum Selesai" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -482,7 +482,7 @@ export function MonitoringMenu({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setActiveDrilldownRow(null)}
-                className="fixed inset-0 bg-slate-950/45 backdrop-blur-md" 
+                className="fixed inset-0 bg-slate-950/60 backdrop-blur-md" 
               />
 
               <motion.div 
@@ -491,9 +491,9 @@ export function MonitoringMenu({
                 exit={{ opacity: 0, scale: 0.95, y: 16 }}
                 transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                 onClick={(e) => e.stopPropagation()}
-                className="relative z-10 bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-4xl max-h-[88vh] flex flex-col overflow-hidden my-auto"
+                className="relative z-10 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 w-full max-w-4xl max-h-[88vh] flex flex-col overflow-hidden my-auto"
               >
-                <div className="bg-slate-900 p-4 text-white flex items-center justify-between">
+                <div className="bg-slate-900 dark:bg-slate-950 p-4 text-white flex items-center justify-between border-b border-slate-800">
                   <div>
                     <h3 className="font-bold text-sm flex items-center gap-2">
                       <span>Daftar Pelanggan Petugas:</span>
@@ -523,7 +523,7 @@ export function MonitoringMenu({
                 <div className="p-4 overflow-y-auto flex-1">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 text-[10px] uppercase">
+                      <tr className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700 text-[10px] uppercase">
                         <th className="p-2 w-8">No</th>
                         <th className="p-2">ID Pelanggan</th>
                         <th className="p-2">Nama Pelanggan</th>
@@ -535,28 +535,30 @@ export function MonitoringMenu({
                         <th className="p-2">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 text-[11px]">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-[11px] text-slate-800 dark:text-slate-200">
                       {drillDownRecords.map((r, i) => (
-                        <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                        <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                           <td className="p-2 text-slate-400 font-mono">{i + 1}</td>
-                          <td className="p-2 font-mono font-bold text-slate-900">{r.idPelanggan}</td>
-                          <td className="p-2 font-semibold text-slate-800">{r.namaPelanggan}</td>
+                          <td className="p-2 font-mono font-bold text-slate-900 dark:text-slate-100">{r.idPelanggan}</td>
+                          <td className="p-2 font-semibold text-slate-800 dark:text-slate-200">{r.namaPelanggan}</td>
                           <td className="p-2 font-mono">{r.tarif}/{r.daya}</td>
-                          <td className="p-2 font-mono text-slate-600">{r.noMeterLama || '-'}</td>
-                          <td className="p-2 font-mono font-bold text-blue-700">{r.noMeterBaru || '-'}</td>
+                          <td className="p-2 font-mono text-slate-600 dark:text-slate-400">{r.noMeterLama || '-'}</td>
+                          <td className="p-2 font-mono font-bold text-blue-600 dark:text-blue-400">{r.noMeterBaru || '-'}</td>
                           <td className="p-2 whitespace-nowrap">
                             <span className={`inline-block whitespace-nowrap text-[9.5px] px-2 py-0.5 rounded font-bold uppercase tracking-tight ${
                               r.jenis === 'PRA BAYAR' || String(r.jenis).toUpperCase().includes('PRA')
-                                ? 'bg-sky-50 text-sky-700 border border-sky-200'
-                                : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                ? 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800'
+                                : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800'
                             }`}>
                               {r.jenis}
                             </span>
                           </td>
-                          <td className="p-2 text-slate-600 text-[10px]">{r.gantiMeter}</td>
+                          <td className="p-2 text-slate-600 dark:text-slate-400 text-[10px]">{r.gantiMeter}</td>
                           <td className="p-2">
                             <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                              r.status === 'SELESAI' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                              r.status === 'SELESAI' 
+                                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40' 
+                                : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40'
                             }`}>
                               {r.status}
                             </span>
@@ -567,13 +569,13 @@ export function MonitoringMenu({
                   </table>
                 </div>
 
-                <div className="p-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/70 border-t border-slate-200 dark:border-slate-800 flex justify-end">
                   <motion.button
                     type="button"
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => setActiveDrilldownRow(null)}
-                    className="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-lg cursor-pointer shadow-xs"
+                    className="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold text-xs rounded-lg cursor-pointer shadow-xs"
                   >
                     Tutup
                   </motion.button>

@@ -327,7 +327,7 @@ export default function App() {
             animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', y: 0 }}
             exit={{ opacity: 0, scale: 0.97, filter: 'blur(10px)', y: -20 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="flex h-screen w-full bg-slate-100 font-sans overflow-hidden"
+            className="flex h-screen w-full bg-slate-100 dark:bg-slate-950 font-sans overflow-hidden transition-colors duration-200"
           >
             {/* High Density Dark Sidebar */}
             <Sidebar

@@ -242,13 +242,13 @@ export function InformasiMenu({
   return (
     <div className="space-y-4">
       {/* 1. Header Banner */}
-      <div className="bg-white px-5 py-3.5 rounded-xl border border-slate-200 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="bg-white dark:bg-slate-900 px-5 py-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2 text-[10px] text-blue-600 font-bold uppercase tracking-wider mb-0.5">
+          <div className="flex items-center gap-2 text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider mb-0.5">
             <Lightbulb className="w-3.5 h-3.5" />
             <span>Menu 4 • Analisa Data & Evaluasi Kinerja</span>
           </div>
-          <h2 className="text-base sm:text-lg font-black text-slate-900 font-sans tracking-tight">
+          <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 font-sans tracking-tight">
             Evaluasi Terukur Performa Penggantian kWh Meter
           </h2>
         </div>
@@ -259,15 +259,15 @@ export function InformasiMenu({
             <button
               type="button"
               onClick={() => setShowMonthSelect(!showMonthSelect)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 cursor-pointer transition shadow-2xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer transition shadow-2xs"
             >
-              <span className="text-slate-400 text-[11px] font-normal">Periode:</span>
-              <span className="font-bold text-slate-900">{selectedMonth.toUpperCase()} 2026</span>
+              <span className="text-slate-400 dark:text-slate-500 text-[11px] font-normal">Periode:</span>
+              <span className="font-bold text-slate-900 dark:text-slate-100">{selectedMonth.toUpperCase()} 2026</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-500 ml-0.5" />
             </button>
 
             {showMonthSelect && (
-              <div className="absolute right-0 mt-1 w-40 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-50">
+              <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 py-1 z-50">
                 {['AGUSTUS', 'JULI', 'SEPTEMBER'].map((m) => (
                   <button
                     key={m}
@@ -276,7 +276,7 @@ export function InformasiMenu({
                       setShowMonthSelect(false);
                     }}
                     className={`w-full text-left px-3 py-1.5 text-xs font-semibold cursor-pointer ${
-                      selectedMonth.toUpperCase() === m ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-50'
+                      selectedMonth.toUpperCase() === m ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
                     {m} 2026
@@ -299,7 +299,7 @@ export function InformasiMenu({
       </div>
 
       {/* 2. Sub-Tabs Navigation (Clean Bar Style matching Menu 2 & 5 with Smooth Animated Pill) */}
-      <div className="bg-white p-1.5 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-1.5 overflow-x-auto relative">
+      <div className="bg-white dark:bg-slate-900 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center gap-1.5 overflow-x-auto relative">
         {[
           { id: 'eksekutif', label: 'Ringkasan Eksekutif & AI Insight', icon: Activity },
           { id: 'petugas', label: 'Produktivitas Petugas (17 Tim)', icon: Award },
@@ -314,7 +314,7 @@ export function InformasiMenu({
               type="button"
               onClick={() => setActiveTab(tab.id as TabType)}
               className={`relative flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 z-10 select-none ${
-                isActive ? 'text-white font-extrabold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                isActive ? 'text-white font-extrabold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/70 dark:hover:bg-slate-800/70'
               }`}
             >
               {isActive && (
@@ -324,7 +324,7 @@ export function InformasiMenu({
                   transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                 />
               )}
-              <Icon className={`w-4 h-4 transition-transform duration-200 ${isActive ? 'text-white scale-110' : 'text-slate-500'}`} />
+              <Icon className={`w-4 h-4 transition-transform duration-200 ${isActive ? 'text-white scale-110' : 'text-slate-500 dark:text-slate-400'}`} />
               <span>{tab.label}</span>
             </button>
           );
@@ -344,7 +344,7 @@ export function InformasiMenu({
             className="space-y-4"
           >
             {/* Top Dark Navy AI Insight Card */}
-            <div className="bg-gradient-to-r from-[#0d233a] via-[#102d4b] to-[#0c1f33] text-white rounded-xl p-5 border border-slate-700/60 shadow-md relative overflow-hidden">
+            <div className="bg-gradient-to-r from-[#0d233a] via-[#102d4b] to-[#0c1f33] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-white rounded-xl p-5 border border-slate-700/60 dark:border-slate-800 shadow-md relative overflow-hidden">
               {/* Header Title with Sparkles */}
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-7 h-7 rounded-lg bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300">
@@ -414,19 +414,19 @@ export function InformasiMenu({
             {/* Bottom 2 Columns Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               {/* Left Box: Trend Kecepatan Penyelesaian */}
-              <div className="lg:col-span-6 bg-white p-5 rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between">
+              <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
                 <div>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
                     <div>
-                      <h3 className="font-extrabold text-sm text-slate-900">
+                      <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
                         Tren Kecepatan Penyelesaian Penggantian Meter Harian
                       </h3>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
                         Volume harian meter Selesai vs Belum
                       </p>
                     </div>
                     {/* Legend */}
-                    <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-600 shrink-0 mt-1 sm:mt-0">
+                    <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-600 dark:text-slate-400 shrink-0 mt-1 sm:mt-0">
                       <span className="flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
                         Pending / Belum
@@ -447,9 +447,9 @@ export function InformasiMenu({
                             <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                        <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 10, fill: '#64748b' }} domain={[0, 20]} ticks={[0, 5, 10, 15, 20]} axisLine={false} tickLine={false} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
+                        <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} domain={[0, 20]} ticks={[0, 5, 10, 15, 20]} axisLine={false} tickLine={false} />
                         <Tooltip 
                           contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', fontSize: '11px', border: 'none' }}
                         />
@@ -462,48 +462,48 @@ export function InformasiMenu({
               </div>
 
               {/* Right Box: Proporsi Meter Tua vs Gangguan */}
-              <div className="lg:col-span-6 bg-white p-5 rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between">
+              <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
                 <div>
-                  <h3 className="font-extrabold text-sm text-slate-900">
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
                     Proporsi Meter Tua vs Meter Gangguan
                   </h3>
-                  <p className="text-xs text-slate-500 mb-4">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
                     Faktor pemicu pelaksanaan ganti meter
                   </p>
 
                   <div className="grid grid-cols-2 gap-3">
                     {/* Card 1: Meter Tua */}
-                    <div className="bg-sky-50/70 border border-sky-200 rounded-lg p-4 text-center flex flex-col justify-between">
-                      <p className="text-xs font-bold text-sky-800 uppercase tracking-tight">
+                    <div className="bg-sky-50/70 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 rounded-lg p-4 text-center flex flex-col justify-between">
+                      <p className="text-xs font-bold text-sky-800 dark:text-sky-300 uppercase tracking-tight">
                         METER TUA (&gt;10 THN)
                       </p>
                       <div className="my-2">
-                        <p className="text-3xl font-black text-slate-800 font-mono">
+                        <p className="text-3xl font-black text-slate-800 dark:text-slate-100 font-mono">
                           {metrics.meterTua}
                         </p>
-                        <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
                           {Math.round((metrics.meterTua / metrics.total) * 100)}% dari total
                         </p>
                       </div>
-                      <p className="text-[10px] text-slate-500 leading-tight">
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
                         Program preventif menjaga akurasi pengukuran kWh
                       </p>
                     </div>
 
                     {/* Card 2: Meter Gangguan */}
-                    <div className="bg-rose-50/60 border border-rose-200 rounded-lg p-4 text-center flex flex-col justify-between">
-                      <p className="text-xs font-bold text-rose-800 uppercase tracking-tight">
+                    <div className="bg-rose-50/60 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-lg p-4 text-center flex flex-col justify-between">
+                      <p className="text-xs font-bold text-rose-800 dark:text-rose-300 uppercase tracking-tight">
                         METER GANGGUAN / RUSAK
                       </p>
                       <div className="my-2">
-                        <p className="text-3xl font-black text-rose-700 font-mono">
+                        <p className="text-3xl font-black text-rose-700 dark:text-rose-400 font-mono">
                           {metrics.meterGangguan}
                         </p>
-                        <p className="text-xs text-rose-500 font-semibold mt-0.5">
+                        <p className="text-xs text-rose-500 dark:text-rose-400 font-semibold mt-0.5">
                           {Math.round((metrics.meterGangguan / metrics.total) * 100)}% dari total
                         </p>
                       </div>
-                      <p className="text-[10px] text-slate-500 leading-tight">
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
                         Korektif penggantian cepat akibat kerusakan keypad/display/error
                       </p>
                     </div>
@@ -511,8 +511,8 @@ export function InformasiMenu({
                 </div>
 
                 {/* Technical Note at bottom */}
-                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-[11px] text-slate-700 leading-relaxed mt-4 flex items-start gap-1.5">
-                  <Pin className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5 fill-rose-600" />
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/70 rounded-lg border border-slate-200 dark:border-slate-700 text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed mt-4 flex items-start gap-1.5">
+                  <Pin className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5 fill-rose-600 dark:fill-rose-400" />
                   <span>
                     <strong>Catatan Teknis JTC:</strong> Mayoritas penggantian di ULP Baguala didominasi oleh peremajaan meter tua (&gt;10 tahun) sebagai langkah strategis menekan angka susut non-teknis.
                   </span>
@@ -530,14 +530,14 @@ export function InformasiMenu({
             animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
             exit={{ opacity: 0, y: -10, scale: 0.99, filter: 'blur(4px)' }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="space-y-4 bg-white p-5 rounded-xl border border-slate-200 shadow-2xs"
+            className="space-y-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs"
           >
             {/* Header */}
             <div>
-              <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+              <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100">
                 Matriks Kinerja & Ranking Produktivitas 17 Petugas
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Peringkat berdasarkan jumlah meter terpasang dan tingkat penyelesaian (completion rate).
               </p>
             </div>
@@ -545,69 +545,69 @@ export function InformasiMenu({
             {/* 3 Top Podium Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {/* Rank 1 */}
-              <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-4 relative">
-                <div className="flex items-center justify-between text-xs text-slate-500 font-bold mb-1">
+              <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700 rounded-xl p-4 relative">
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-bold mb-1">
                   <span>Peringkat #1</span>
                   <span className="text-base">🥇</span>
                 </div>
-                <h4 className="text-base font-black text-slate-900 uppercase tracking-tight">
+                <h4 className="text-base font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">
                   {top3Officers[0]?.name || 'ONYONG'}
                 </h4>
                 <div className="mt-3 flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Selesai Terganti:</span>
-                  <span className="text-emerald-600 font-black font-mono">
+                  <span className="text-slate-500 dark:text-slate-400">Selesai Terganti:</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-black font-mono">
                     {top3Officers[0]?.selesai || 45} Unit
                   </span>
                 </div>
                 <div className="mt-1 flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Persentase Sukses:</span>
-                  <span className="text-blue-600 font-black font-mono">
+                  <span className="text-slate-500 dark:text-slate-400">Persentase Sukses:</span>
+                  <span className="text-blue-600 dark:text-blue-400 font-black font-mono">
                     {top3Officers[0]?.rate || 100}%
                   </span>
                 </div>
               </div>
 
               {/* Rank 2 */}
-              <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-4 relative">
-                <div className="flex items-center justify-between text-xs text-slate-500 font-bold mb-1">
+              <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700 rounded-xl p-4 relative">
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-bold mb-1">
                   <span>Peringkat #2</span>
                   <span className="text-base">🥈</span>
                 </div>
-                <h4 className="text-base font-black text-slate-900 uppercase tracking-tight">
+                <h4 className="text-base font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">
                   {top3Officers[1]?.name || 'GABRIEL'}
                 </h4>
                 <div className="mt-3 flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Selesai Terganti:</span>
-                  <span className="text-emerald-600 font-black font-mono">
+                  <span className="text-slate-500 dark:text-slate-400">Selesai Terganti:</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-black font-mono">
                     {top3Officers[1]?.selesai || 42} Unit
                   </span>
                 </div>
                 <div className="mt-1 flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Persentase Sukses:</span>
-                  <span className="text-blue-600 font-black font-mono">
+                  <span className="text-slate-500 dark:text-slate-400">Persentase Sukses:</span>
+                  <span className="text-blue-600 dark:text-blue-400 font-black font-mono">
                     {top3Officers[1]?.rate || 93}%
                   </span>
                 </div>
               </div>
 
               {/* Rank 3 */}
-              <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-4 relative">
-                <div className="flex items-center justify-between text-xs text-slate-500 font-bold mb-1">
+              <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700 rounded-xl p-4 relative">
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-bold mb-1">
                   <span>Peringkat #3</span>
                   <span className="text-base">🥉</span>
                 </div>
-                <h4 className="text-base font-black text-slate-900 uppercase tracking-tight">
+                <h4 className="text-base font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">
                   {top3Officers[2]?.name || 'YUSRIL'}
                 </h4>
                 <div className="mt-3 flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Selesai Terganti:</span>
-                  <span className="text-emerald-600 font-black font-mono">
+                  <span className="text-slate-500 dark:text-slate-400">Selesai Terganti:</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-black font-mono">
                     {top3Officers[2]?.selesai || 39} Unit
                   </span>
                 </div>
                 <div className="mt-1 flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Persentase Sukses:</span>
-                  <span className="text-blue-600 font-black font-mono">
+                  <span className="text-slate-500 dark:text-slate-400">Persentase Sukses:</span>
+                  <span className="text-blue-600 dark:text-blue-400 font-black font-mono">
                     {top3Officers[2]?.rate || 80}%
                   </span>
                 </div>
@@ -615,10 +615,10 @@ export function InformasiMenu({
             </div>
 
             {/* Complete 17 Officers Table */}
-            <div className="rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+            <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-2xs">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-[#182d46] text-white text-[10px] font-bold uppercase tracking-wider">
+                  <thead className="bg-[#182d46] dark:bg-slate-950 text-white text-[10px] font-bold uppercase tracking-wider">
                     <tr>
                       <th className="py-3 px-4 text-center w-16">RANK</th>
                       <th className="py-3 px-4">PETUGAS</th>
@@ -629,42 +629,42 @@ export function InformasiMenu({
                       <th className="py-3 px-4">EVALUASI BEBAN KERJA</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white font-medium">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900 font-medium">
                     {metrics.officerList.map((item, index) => {
                       const isFullyDone = item.belum === 0;
                       return (
-                        <tr key={item.name} className="hover:bg-slate-50 transition-colors">
-                          <td className="py-2.5 px-4 text-center font-bold text-slate-600 font-mono">
+                        <tr key={item.name} className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
+                          <td className="py-2.5 px-4 text-center font-bold text-slate-600 dark:text-slate-400 font-mono">
                             #{index + 1}
                           </td>
-                          <td className="py-2.5 px-4 font-black text-slate-900 uppercase">
+                          <td className="py-2.5 px-4 font-black text-slate-900 dark:text-slate-100 uppercase">
                             {item.name}
                           </td>
-                          <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-800">
+                          <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-800 dark:text-slate-200">
                             {item.total}
                           </td>
-                          <td className="py-2.5 px-3 text-center font-mono font-black text-emerald-600">
+                          <td className="py-2.5 px-3 text-center font-mono font-black text-emerald-600 dark:text-emerald-400">
                             {item.selesai}
                           </td>
                           <td className="py-2.5 px-3 text-center font-mono font-bold">
                             {item.belum > 0 ? (
-                              <span className="text-amber-600 font-black">{item.belum}</span>
+                              <span className="text-amber-600 dark:text-amber-400 font-black">{item.belum}</span>
                             ) : (
-                              <span className="text-slate-300">-</span>
+                              <span className="text-slate-300 dark:text-slate-600">-</span>
                             )}
                           </td>
-                          <td className="py-2.5 px-3 text-center font-mono font-bold text-blue-700">
+                          <td className="py-2.5 px-3 text-center font-mono font-bold text-blue-700 dark:text-blue-400">
                             {item.rate}%
                           </td>
                           <td className="py-2.5 px-4">
                             {isFullyDone ? (
-                              <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                                 <span>Target Tuntas 100%</span>
                               </div>
                             ) : (
-                              <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-700">
-                                <Clock className="w-3.5 h-3.5 text-amber-500" />
+                              <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                                <Clock className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                                 <span>Sisa {item.belum} pelanggan dalam penanganan</span>
                               </div>
                             )}
@@ -690,20 +690,20 @@ export function InformasiMenu({
             className="grid grid-cols-1 lg:grid-cols-12 gap-4"
           >
             {/* Left: Bar Chart Distribusi Golongan Tarif */}
-            <div className="lg:col-span-6 bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
-              <h3 className="font-extrabold text-sm text-slate-900">
+            <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+              <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
                 Distribusi Golongan Tarif Pelanggan
               </h3>
-              <p className="text-xs text-slate-500 mb-4">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
                 Klasifikasi tarif yang diganti meternya
               </p>
 
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={metrics.tarifChartData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                    <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 700, fill: '#475569' }} axisLine={false} tickLine={false} />
-                    <YAxis domain={[0, 160]} ticks={[0, 40, 80, 120, 160]} tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
+                    <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <YAxis domain={[0, 160]} ticks={[0, 40, 80, 120, 160]} tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                     <Tooltip 
                       contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', fontSize: '11px', border: 'none' }}
                     />
@@ -714,22 +714,22 @@ export function InformasiMenu({
             </div>
 
             {/* Right: Perbandingan Jenis Prabayar vs Pascabayar */}
-            <div className="lg:col-span-6 bg-white p-5 rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between">
+            <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
               <div>
-                <h3 className="font-extrabold text-sm text-slate-900">
+                <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
                   Perbandingan Jenis Prabayar vs Pascabayar
                 </h3>
-                <p className="text-xs text-slate-500 mb-4">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
                   Kategori produk kWh meter
                 </p>
 
                 {/* Card 1: Prabayar */}
-                <div className="bg-purple-50/50 border border-purple-200/80 rounded-xl p-4 space-y-2 mb-3">
-                  <div className="flex items-center justify-between text-xs font-bold text-purple-900">
+                <div className="bg-purple-50/50 dark:bg-purple-950/40 border border-purple-200/80 dark:border-purple-800/60 rounded-xl p-4 space-y-2 mb-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-purple-900 dark:text-purple-200">
                     <span>PRA BAYAR (Listrik Pintar)</span>
                     <span className="font-mono text-sm">{metrics.prabayar} Unit</span>
                   </div>
-                  <div className="h-3 w-full bg-purple-100 rounded-full overflow-hidden">
+                  <div className="h-3 w-full bg-purple-100 dark:bg-purple-900/50 rounded-full overflow-hidden">
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${Math.round((metrics.prabayar / metrics.total) * 100)}%` }}
@@ -737,18 +737,18 @@ export function InformasiMenu({
                       className="h-full bg-purple-600 rounded-full"
                     />
                   </div>
-                  <p className="text-[11px] text-purple-700 font-medium">
+                  <p className="text-[11px] text-purple-700 dark:text-purple-300 font-medium">
                     {Math.round((metrics.prabayar / metrics.total) * 100)}% dari total pergantian
                   </p>
                 </div>
 
                 {/* Card 2: Pascabayar */}
-                <div className="bg-sky-50/50 border border-sky-200/80 rounded-xl p-4 space-y-2">
-                  <div className="flex items-center justify-between text-xs font-bold text-sky-900">
+                <div className="bg-sky-50/50 dark:bg-sky-950/40 border border-sky-200/80 dark:border-sky-800/60 rounded-xl p-4 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-sky-900 dark:text-sky-200">
                     <span>PASKA BAYAR (Reguler)</span>
                     <span className="font-mono text-sm">{metrics.paskabayar} Unit</span>
                   </div>
-                  <div className="h-3 w-full bg-sky-100 rounded-full overflow-hidden">
+                  <div className="h-3 w-full bg-sky-100 dark:bg-sky-900/50 rounded-full overflow-hidden">
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${Math.round((metrics.paskabayar / metrics.total) * 100)}%` }}
@@ -756,14 +756,14 @@ export function InformasiMenu({
                       className="h-full bg-sky-600 rounded-full"
                     />
                   </div>
-                  <p className="text-[11px] text-sky-700 font-medium">
+                  <p className="text-[11px] text-sky-700 dark:text-sky-300 font-medium">
                     {Math.round((metrics.paskabayar / metrics.total) * 100)}% dari total pergantian
                   </p>
                 </div>
               </div>
 
               {/* Note */}
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-600 leading-relaxed mt-4">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/70 rounded-xl border border-slate-200 dark:border-slate-700 text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed mt-4">
                 Informasi ini berguna untuk penyediaan stok Token Perdana dan penyesuaian tarif index pada New AP2T.
               </div>
             </div>
@@ -778,14 +778,14 @@ export function InformasiMenu({
             animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
             exit={{ opacity: 0, y: -10, scale: 0.99, filter: 'blur(4px)' }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="space-y-4 bg-white p-5 rounded-xl border border-slate-200 shadow-2xs"
+            className="space-y-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs"
           >
             {/* Header */}
             <div>
-              <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+              <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-slate-100">
                 Analisa Pengendalian Susut & Revenue Protection (RP)
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Kalkulasi dampak penggantian meter macet / lambat terhadap peningkatan akurasi transaksi energi.
               </p>
             </div>
@@ -793,45 +793,45 @@ export function InformasiMenu({
             {/* 3 Metric Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Card 1: Green */}
-              <div className="bg-emerald-50/50 border border-emerald-200/90 rounded-xl p-5 text-center space-y-1">
-                <p className="text-xs font-bold text-slate-700">Meter Gangguan Terselesaikan</p>
-                <p className="text-3xl font-black text-emerald-600 font-mono tracking-tight my-1.5">
+              <div className="bg-emerald-50/50 dark:bg-emerald-950/40 border border-emerald-200/90 dark:border-emerald-800/60 rounded-xl p-5 text-center space-y-1">
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Meter Gangguan Terselesaikan</p>
+                <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight my-1.5">
                   {metrics.meterGangguan} Unit
                 </p>
-                <p className="text-[11px] text-slate-500 font-medium">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                   Sudah diganti dengan meter digital baru
                 </p>
               </div>
 
               {/* Card 2: Blue */}
-              <div className="bg-sky-50/50 border border-sky-200/90 rounded-xl p-5 text-center space-y-1">
-                <p className="text-xs font-bold text-slate-700">Estimasi Pemulihan kWh / Bulan</p>
-                <p className="text-3xl font-black text-sky-600 font-mono tracking-tight my-1.5">
+              <div className="bg-sky-50/50 dark:bg-sky-950/40 border border-sky-200/90 dark:border-sky-800/60 rounded-xl p-5 text-center space-y-1">
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Estimasi Pemulihan kWh / Bulan</p>
+                <p className="text-3xl font-black text-sky-600 dark:text-sky-400 font-mono tracking-tight my-1.5">
                   {metrics.estimatedKwh.toLocaleString('id-ID')} kWh
                 </p>
-                <p className="text-[11px] text-slate-500 font-medium">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                   Rata-rata 185 kWh/pelanggan/bulan
                 </p>
               </div>
 
               {/* Card 3: Indigo / Purple */}
-              <div className="bg-indigo-50/50 border border-indigo-200/90 rounded-xl p-5 text-center space-y-1">
-                <p className="text-xs font-bold text-slate-700">Potensi Nilai Pendapatan Diproteksi</p>
-                <p className="text-3xl font-black text-indigo-700 font-mono tracking-tight my-1.5">
+              <div className="bg-indigo-50/50 dark:bg-indigo-950/40 border border-indigo-200/90 dark:border-indigo-800/60 rounded-xl p-5 text-center space-y-1">
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Potensi Nilai Pendapatan Diproteksi</p>
+                <p className="text-3xl font-black text-indigo-700 dark:text-indigo-300 font-mono tracking-tight my-1.5">
                   Rp {metrics.estimatedRp.toLocaleString('id-ID')}
                 </p>
-                <p className="text-[11px] text-slate-500 font-medium">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                   Perhitungan tarif BDL rata-rata Rp 1.444,70/kWh
                 </p>
               </div>
             </div>
 
             {/* Bottom KPI Box */}
-            <div className="p-4 bg-slate-50/80 rounded-xl border border-slate-200 space-y-2.5 text-xs">
-              <h4 className="font-extrabold text-slate-900 text-xs">
+            <div className="p-4 bg-slate-50/80 dark:bg-slate-800/70 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2.5 text-xs">
+              <h4 className="font-extrabold text-slate-900 dark:text-slate-100 text-xs">
                 Indikator Kinerja Utama (KPI) JTC Transaksi Energi:
               </h4>
-              <div className="space-y-1.5 text-slate-700 leading-relaxed text-[11px]">
+              <div className="space-y-1.5 text-slate-700 dark:text-slate-300 leading-relaxed text-[11px]">
                 <p>
                   <strong>1. Tingkat Kepatuhan Penggantian:</strong> Capaian sebesar <strong>{metrics.rate}%</strong> menunjukkan kinerja operasional ULP Baguala berada dalam kategori <strong>Sangat Baik (Hijau)</strong>.
                 </p>

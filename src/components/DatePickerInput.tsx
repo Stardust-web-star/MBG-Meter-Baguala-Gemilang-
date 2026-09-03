@@ -190,7 +190,7 @@ export function DatePickerInput({
   return (
     <div className={`relative ${className}`} ref={containerRef}>
       {label && (
-        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">
+        <label className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider block mb-1">
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
@@ -198,16 +198,16 @@ export function DatePickerInput({
       {/* Input box styled exactly like Image 1 */}
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 cursor-pointer hover:bg-white hover:border-slate-300 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all shadow-2xs"
+        className="relative flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 cursor-pointer hover:bg-white dark:hover:bg-slate-750 hover:border-slate-300 dark:hover:border-slate-600 focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all shadow-2xs"
       >
         <input
           type="text"
           readOnly
           value={value || placeholder}
           placeholder={placeholder}
-          className="w-full bg-transparent font-semibold text-slate-800 text-xs sm:text-sm uppercase tracking-wide cursor-pointer focus:outline-none"
+          className="w-full bg-transparent font-semibold text-slate-800 dark:text-slate-200 text-xs sm:text-sm uppercase tracking-wide cursor-pointer focus:outline-none"
         />
-        <CalendarIcon className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
+        <CalendarIcon className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0 ml-2" />
       </div>
 
       {/* Calendar Popover styled exactly like Image 2 */}
@@ -218,25 +218,25 @@ export function DatePickerInput({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 6 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute left-0 top-full mt-1.5 z-50 bg-white rounded-2xl border border-slate-200 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.18)] p-4 w-72 text-xs"
+            className="absolute left-0 top-full mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.18)] dark:shadow-[0_12px_40px_-8px_rgba(0,0,0,0.5)] p-4 w-72 text-xs"
           >
             {/* Header: Month Year + Arrows */}
             <div className="flex items-center justify-between mb-3 px-1">
-              <span className="font-semibold text-slate-700 text-sm">
+              <span className="font-semibold text-slate-700 dark:text-slate-200 text-sm">
                 {MONTH_NAMES_TITLE[viewMonth]} {viewYear}
               </span>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={handlePrevMonth}
-                  className="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
+                  className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center transition cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
                   onClick={handleNextMonth}
-                  className="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
+                  className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center transition cursor-pointer"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -244,7 +244,7 @@ export function DatePickerInput({
             </div>
 
             {/* Day Initials Row (S M T W T F S) */}
-            <div className="grid grid-cols-7 text-center font-medium text-slate-400 text-[11px] mb-2">
+            <div className="grid grid-cols-7 text-center font-medium text-slate-400 dark:text-slate-500 text-[11px] mb-2">
               <span>S</span>
               <span>M</span>
               <span>T</span>
@@ -270,9 +270,9 @@ export function DatePickerInput({
                           ? 'bg-emerald-600 text-white font-bold shadow-xs'
                           : cell.isCurrentMonth
                             ? isToday
-                              ? 'bg-blue-50 text-blue-700 font-bold hover:bg-blue-100'
-                              : 'text-slate-700 hover:bg-slate-100'
-                            : 'text-slate-300 hover:text-slate-500 hover:bg-slate-50'
+                              ? 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-bold hover:bg-blue-100 dark:hover:bg-blue-900'
+                              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                            : 'text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                       }`}
                     >
                       {cell.dayNum}
@@ -283,18 +283,18 @@ export function DatePickerInput({
             </div>
 
             {/* Quick Action Footer */}
-            <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+            <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
               <button
                 type="button"
                 onClick={() => handleSelectDate(new Date())}
-                className="font-bold text-blue-600 hover:text-blue-700 transition cursor-pointer"
+                className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition cursor-pointer"
               >
                 Hari Ini
               </button>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition cursor-pointer"
               >
                 Tutup
               </button>
