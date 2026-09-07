@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { GoogleSheetConfig, MeterRecord } from '../types';
 import { getRealCurrentMonthInfo } from '../utils/monthUtils';
-import { exportRecordsToCSV, parseCSVToRecords, saveRecords, safeMergeRecords } from '../data/storage';
+import { exportRecordsToCSV, parseCSVToRecords, saveRecords, safeMergeRecords, fetchAndSyncFromGoogleSheet } from '../data/storage';
 import { GOOGLE_APPS_SCRIPT_CODE } from '../data/appsScriptCode';
 import { 
   Sheet, 
@@ -44,9 +44,9 @@ export function GoogleSheetSyncModal({
   onImportRecords
 }: GoogleSheetSyncModalProps) {
   const updateRecords = onImportRecords || onUpdateRecords || (() => {});
-  const [sheetUrl, setSheetUrl] = useState(config.sheetUrl || 'https://docs.google.com/spreadsheets/d/1UYWV2Lj2YyR-jIKpQR5G4jyiIBaZXpuX6TSBV_9txEE/edit?gid=0#gid=0');
+  const [sheetUrl, setSheetUrl] = useState(config.sheetUrl || 'https://docs.google.com/spreadsheets/d/1w0JXKZaJdTqzzc0iA9QK179ggx7sz0EHISt4qhNWlc/edit?gid=18648303#gid=18648303');
   const [sheetTab, setSheetTab] = useState(config.selectedSheetTab || getRealCurrentMonthInfo().id);
-  const [webAppUrl, setWebAppUrl] = useState(config.webAppUrl || 'https://script.google.com/macros/s/AKfycbzUPTMp0lU2oz2lNmAxn416FmRN5isMdzXMtKzOWMRJydmvTyfzn7bs5Qvs2fJu3ohi/exec');
+  const [webAppUrl, setWebAppUrl] = useState(config.webAppUrl || 'https://script.google.com/macros/s/AKfycbxo4wsaicmVoaqSZj9Z7wOErdolaX80LNhjDteG8ZRQsir4Jm4jmss6bza-ZkhSZe5SLA/exec');
   const [isSyncing, setIsSyncing] = useState(false);
   const [isPushing, setIsPushing] = useState(false);
   const [isFullSyncing, setIsFullSyncing] = useState(false);
@@ -78,95 +78,39 @@ export function GoogleSheetSyncModal({
     }
   };
 
-  // 2. Tarik Data dari Google Sheet (Pull Aman - Murni Membaca tanpa Mengubah Sheet)
+  // 2. Tarik Data dari Google Sheet (Pull Aman - Multi-Device Server Sync)
   const handlePullFromSheet = async () => {
     setIsSyncing(true);
     setSyncStatusMsg(null);
 
     try {
-      if (webAppUrl.trim()) {
-        const targetUrl = `${webAppUrl.trim()}${webAppUrl.includes('?') ? '&' : '?'}sheetName=${encodeURIComponent(sheetTab)}&t=${Date.now()}`;
-        const response = await fetch(targetUrl);
-        if (!response.ok) {
-          throw new Error(`Web App Error HTTP ${response.status}. Pastikan URL Web App benar dan di-deploy dengan akses 'Anyone'.`);
-        }
-        const json = await response.json();
-        if (json.status === 'error') {
-          throw new Error(json.message || 'Gagal memproses data dari Google Apps Script.');
-        }
+      const match = sheetUrl.trim().match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+      const extractedSheetId = match ? match[1] : config.sheetId;
 
-        const rawSheetRecords: MeterRecord[] = Array.isArray(json.data) ? json.data : [];
-        const cleanSheetRecords = rawSheetRecords.filter(r => {
-          const idUpper = String(r.idPelanggan || '').toUpperCase().trim();
-          const namaUpper = String(r.namaPelanggan || '').toUpperCase().trim();
-          return idUpper !== 'ID PEL' && idUpper !== 'IDPEL' && idUpper !== 'ID PELANGGAN' && idUpper !== 'NO' &&
-                 namaUpper !== 'NAMA' && namaUpper !== 'NAMA PELANGGAN' && !(idUpper.includes('PEL') && namaUpper.includes('NAMA'));
-        });
-
-        const merged = safeMergeRecords(cleanSheetRecords, records, sheetTab);
-
-        updateRecords(merged);
-        saveRecords(merged);
-
-        const newConfig: GoogleSheetConfig = {
-          ...config,
-          sheetUrl,
-          webAppUrl: webAppUrl.trim(),
-          selectedSheetTab: sheetTab,
-          lastSyncTime: new Date().toISOString(),
-          syncStatus: 'connected'
-        };
-        onSaveConfig(newConfig);
-
-        setSyncStatusMsg({
-          type: 'success',
-          text: `⚡ Sinkronisasi Tab "${sheetTab}" Berhasil! Terdata ${cleanSheetRecords.length} unit ganti meter dari Google Sheet.`,
-          details: `Data pada tab "${sheetTab}" Google Sheet telah sinkron 100% dengan dashboard monitoring.`
-        });
-        return;
-      }
-
-      // Fallback: Public Sheet CSV Gviz Export (Pure Read)
-      let fetchUrl = sheetUrl.trim();
-      const match = fetchUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-      const sheetId = match ? match[1] : config.sheetId;
-
-      if (fetchUrl.includes('docs.google.com/spreadsheets')) {
-        fetchUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetTab)}`;
-      }
-
-      const response = await fetch(fetchUrl);
-      if (!response.ok) {
-        throw new Error(`Google Sheet response code: ${response.status}. Pastikan izin share diset "Anyone with link can view" atau gunakan Web App URL.`);
-      }
-
-      const csvData = await response.text();
-      const parsed = parseCSVToRecords(csvData);
-
-      if (parsed.length === 0) {
-        throw new Error('Data sheet kosong atau format kolom tidak sesuai header PLN.');
-      }
-
-      const merged = safeMergeRecords(parsed, records, sheetTab);
-      updateRecords(merged);
-      saveRecords(merged);
-
-      const newConfig: GoogleSheetConfig = {
+      const activeConfig: GoogleSheetConfig = {
         ...config,
-        sheetUrl,
-        sheetId,
+        sheetUrl: sheetUrl.trim(),
+        sheetId: extractedSheetId,
         webAppUrl: webAppUrl.trim(),
         selectedSheetTab: sheetTab,
         lastSyncTime: new Date().toISOString(),
         syncStatus: 'connected'
       };
-      onSaveConfig(newConfig);
 
-      setSyncStatusMsg({
-        type: 'success',
-        text: `⚡ Berhasil menarik ${parsed.length} data dari tab "${sheetTab}" Google Sheets (Mode Read-Only)!`,
-        details: 'Data pada file Google Sheet Anda tetap utuh & tidak mengalami perubahan.'
-      });
+      const result = await fetchAndSyncFromGoogleSheet(sheetTab, records, activeConfig);
+
+      if (result.success && result.records.length > 0) {
+        updateRecords(result.records);
+        onSaveConfig(activeConfig);
+        setSyncStatusMsg({
+          type: 'success',
+          text: `⚡ Sinkronisasi Tab "${sheetTab}" Berhasil! (${result.count} data).`,
+          details: `Data pada tab "${sheetTab}" Google Sheet telah tersinkronisasi dan otomatis terupdate di semua laptop/perangkat yang terhubung.`
+        });
+        return;
+      }
+
+      throw new Error('Gagal menarik data dari Google Sheet. Periksa izin sharing Google Sheet (Anyone with link can view) atau URL Web App.');
     } catch (err: any) {
       setSyncStatusMsg({
         type: 'error',

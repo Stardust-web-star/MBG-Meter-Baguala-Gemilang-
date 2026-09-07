@@ -25,6 +25,7 @@ import {
   saveGSheetConfig,
   safeMergeRecords,
   fetchAndSyncFromGoogleSheet,
+  fetchSharedServerState,
   syncAddRecordToSheetBackground,
   syncUpdateRecordToSheetBackground
 } from './data/storage';
@@ -82,7 +83,7 @@ export default function App() {
     }
   };
 
-  // Initialize data on mount and set up automatic background sync
+  // Initialize data on mount and set up automatic cross-device multi-laptop background sync
   useEffect(() => {
     const storedUser = getCurrentUser();
     const storedUsers = getStoredUsers();
@@ -99,29 +100,55 @@ export default function App() {
     if (storedUser) {
       setUser(storedUser);
     } else {
-      // Prompt login modal if no user logged in
       setIsLoginModalOpen(true);
     }
 
-    // Direct Sync On Load for AGUSTUS, JULI, and SEPTEMBER
+    // 1. Instantly pull latest state from centralized server (if other laptop made changes)
+    fetchSharedServerState().then(shared => {
+      if (shared && shared.records && shared.records.length > 0) {
+        setRecords(shared.records);
+        if (shared.config) setSheetConfig(shared.config);
+        if (shared.users) setUsers(shared.users);
+      }
+    });
+
+    // 2. Direct Sync On Load for Google Sheet
     syncMonthWithSheet(initialMonth, storedRecords);
 
-    // Pre-sync other months in the background so switching is instant
+    // 3. Pre-sync other months in background
     const monthsToPreSync = ['AGUSTUS', 'JULI', 'SEPTEMBER'].filter(m => m !== initialMonth);
     monthsToPreSync.forEach(m => {
       fetchAndSyncFromGoogleSheet(m, storedRecords).then(res => {
-        if (res.success) {
+        if (res.success && res.records.length > 0) {
           setRecords(res.records);
         }
       });
     });
 
-    // Periodic Background Polling every 30 seconds
-    const intervalId = setInterval(() => {
-      syncMonthWithSheet(initialMonth);
-    }, 30000);
+    // 4. Periodic Cross-Laptop Background Polling every 12 seconds
+    const intervalId = setInterval(async () => {
+      const shared = await fetchSharedServerState();
+      if (shared && shared.records && shared.records.length > 0) {
+        setRecords(shared.records);
+        if (shared.config) setSheetConfig(shared.config);
+        if (shared.users) setUsers(shared.users);
+      }
+    }, 12000);
 
-    return () => clearInterval(intervalId);
+    // 5. Window Focus / Tab Re-open Sync (Immediate Refresh on focus)
+    const handleFocusSync = async () => {
+      const shared = await fetchSharedServerState();
+      if (shared && shared.records && shared.records.length > 0) {
+        setRecords(shared.records);
+        if (shared.config) setSheetConfig(shared.config);
+      }
+    };
+    window.addEventListener('focus', handleFocusSync);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocusSync);
+    };
   }, []);
 
   // Automatic Logout after 10 Minutes (600,000 ms) of User Inactivity

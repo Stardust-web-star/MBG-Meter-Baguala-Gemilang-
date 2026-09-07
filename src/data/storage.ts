@@ -20,12 +20,77 @@ export const DEFAULT_GSHEET_CONFIG: GoogleSheetConfig = {
   syncStatus: 'connected'
 };
 
+/**
+ * Fetch full shared state from server for cross-device multi-laptop synchronization
+ */
+export async function fetchSharedServerState(): Promise<{
+  records: MeterRecord[];
+  config: GoogleSheetConfig;
+  users: UserAccount[];
+  logs: ActivityLog[];
+  lastUpdated: string;
+} | null> {
+  try {
+    const res = await fetch('/api/state', {
+      headers: { 'Cache-Control': 'no-cache' }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.records)) {
+        if (data.records.length > 0) {
+          saveRecordsLocally(data.records);
+        }
+        if (data.config) {
+          saveGSheetConfigLocally(data.config);
+        }
+        if (data.users && Array.isArray(data.users) && data.users.length > 0) {
+          saveUsersLocally(data.users);
+        }
+        return data;
+      }
+    }
+  } catch (err) {
+    console.warn('[Sync] Server state fetch note:', err);
+  }
+  return null;
+}
+
+function saveRecordsLocally(records: MeterRecord[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.RECORDS, JSON.stringify(records));
+  } catch (e) {
+    console.error('Failed to save records to localStorage', e);
+  }
+}
+
+function saveUsersLocally(users: UserAccount[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+  } catch (e) {
+    console.error('Failed to save users to localStorage', e);
+  }
+}
+
+function saveGSheetConfigLocally(cfg: GoogleSheetConfig): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.GSHEET_CONFIG, JSON.stringify(cfg));
+  } catch (e) {
+    console.error('Failed to save config to localStorage', e);
+  }
+}
+
 export function getStoredRecords(): MeterRecord[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.RECORDS);
     if (!raw) {
       const initial = generateInitialRecords();
-      saveRecords(initial);
+      saveRecordsLocally(initial);
+      // Trigger background sync to server
+      fetch('/api/records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records: initial })
+      }).catch(() => {});
       return initial;
     }
     return JSON.parse(raw);
@@ -36,11 +101,13 @@ export function getStoredRecords(): MeterRecord[] {
 }
 
 export function saveRecords(records: MeterRecord[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEYS.RECORDS, JSON.stringify(records));
-  } catch (e) {
-    console.error('Failed to save records to localStorage', e);
-  }
+  saveRecordsLocally(records);
+  // Persist to centralized server so other laptops receive it
+  fetch('/api/records', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ records })
+  }).catch(err => console.warn('[Sync] Server save records error:', err));
 }
 
 export function addMeterRecord(record: Omit<MeterRecord, 'id'>, currentUser?: string): MeterRecord {
@@ -53,8 +120,16 @@ export function addMeterRecord(record: Omit<MeterRecord, 'id'>, currentUser?: st
     createdBy: currentUser || 'Admin JTC TE'
   };
   const updated = [fullRecord, ...records];
-  saveRecords(updated);
+  saveRecordsLocally(updated);
   logActivity(currentUser || 'Admin', 'INPUT_DATA', fullRecord.id, `Input ganti meter IDPEL: ${fullRecord.idPelanggan} (${fullRecord.namaPelanggan})`);
+  
+  // Sync to server
+  fetch('/api/records/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ record: fullRecord, user: currentUser })
+  }).catch(err => console.warn('[Sync] Server add record error:', err));
+
   return fullRecord;
 }
 
@@ -68,8 +143,16 @@ export function updateMeterRecord(id: string, updates: Partial<MeterRecord>, cur
     ...updates,
     updatedAt: new Date().toISOString()
   };
-  saveRecords(records);
+  saveRecordsLocally(records);
   logActivity(currentUser || 'Admin', 'UPDATE_DATA', id, `Update data IDPEL: ${records[index].idPelanggan}`);
+
+  // Sync to server
+  fetch(`/api/records/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ updates, user: currentUser })
+  }).catch(err => console.warn('[Sync] Server update record error:', err));
+
   return true;
 }
 
@@ -77,10 +160,18 @@ export function deleteMeterRecord(id: string, currentUser?: string): boolean {
   const records = getStoredRecords();
   const target = records.find(r => r.id === id);
   const updated = records.filter(r => r.id !== id);
-  saveRecords(updated);
+  saveRecordsLocally(updated);
   if (target) {
     logActivity(currentUser || 'Admin', 'DELETE_DATA', id, `Hapus data IDPEL: ${target.idPelanggan} (${target.namaPelanggan})`);
   }
+
+  // Sync to server
+  fetch(`/api/records/${id}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user: currentUser })
+  }).catch(err => console.warn('[Sync] Server delete record error:', err));
+
   return true;
 }
 
@@ -95,7 +186,7 @@ export function getStoredUsers(): UserAccount[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.USERS);
     if (!raw) {
-      saveUsers(DEFAULT_USERS);
+      saveUsersLocally(DEFAULT_USERS);
       return DEFAULT_USERS;
     }
     let parsed: UserAccount[] = JSON.parse(raw);
@@ -116,7 +207,7 @@ export function getStoredUsers(): UserAccount[] {
       }
     });
     if (updated) {
-      saveUsers(parsed);
+      saveUsersLocally(parsed);
     }
     return parsed;
   } catch {
@@ -125,11 +216,7 @@ export function getStoredUsers(): UserAccount[] {
 }
 
 export function saveUsers(users: UserAccount[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-  } catch (e) {
-    console.error('Failed to save users', e);
-  }
+  saveUsersLocally(users);
 }
 
 export function addUser(user: Omit<UserAccount, 'id' | 'createdAt'>, actor?: string): UserAccount {
@@ -140,8 +227,16 @@ export function addUser(user: Omit<UserAccount, 'id' | 'createdAt'>, actor?: str
     createdAt: new Date().toLocaleString('id-ID')
   };
   const updated = [...users, newUser];
-  saveUsers(updated);
+  saveUsersLocally(updated);
   logActivity(actor || 'Admin', 'ADD_USER', newUser.id, `Tambah user baru: ${newUser.email} (${newUser.nama})`);
+
+  // Sync to server
+  fetch('/api/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user: newUser, actor })
+  }).catch(err => console.warn('[Sync] Server add user error:', err));
+
   return newUser;
 }
 
@@ -150,8 +245,16 @@ export function updateUser(id: string, updates: Partial<UserAccount>, actor?: st
   const index = users.findIndex(u => u.id === id);
   if (index === -1) return false;
   users[index] = { ...users[index], ...updates };
-  saveUsers(users);
+  saveUsersLocally(users);
   logActivity(actor || 'Admin', 'UPDATE_USER', id, `Update profil/status user: ${users[index].email}`);
+
+  // Sync to server
+  fetch(`/api/users/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ updates, actor })
+  }).catch(err => console.warn('[Sync] Server update user error:', err));
+
   return true;
 }
 
@@ -159,10 +262,18 @@ export function deleteUser(id: string, actor?: string): boolean {
   const users = getStoredUsers();
   const target = users.find(u => u.id === id);
   const updated = users.filter(u => u.id !== id);
-  saveUsers(updated);
+  saveUsersLocally(updated);
   if (target) {
     logActivity(actor || 'Admin', 'DELETE_USER', id, `Hapus user: ${target.email}`);
   }
+
+  // Sync to server
+  fetch(`/api/users/${id}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ actor })
+  }).catch(err => console.warn('[Sync] Server delete user error:', err));
+
   return true;
 }
 
@@ -171,7 +282,6 @@ export function getCurrentUser(): UserAccount | null {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEYS.CURRENT_USER);
     if (!raw) {
-      // Clear any legacy localStorage session to enforce login on new tab / tab close
       localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
       return null;
     }
@@ -187,7 +297,7 @@ export function setCurrentUser(user: UserAccount | null): void {
     localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
   } else {
     sessionStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER); // Ensure not persisted across tab closes
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
   }
 }
 
@@ -210,11 +320,18 @@ export function getGSheetConfig(): GoogleSheetConfig {
 }
 
 export function saveGSheetConfig(cfg: GoogleSheetConfig): void {
-  localStorage.setItem(STORAGE_KEYS.GSHEET_CONFIG, JSON.stringify(cfg));
+  saveGSheetConfigLocally(cfg);
+  // Sync to server so all laptops receive the updated Google Sheet config
+  fetch('/api/gsheet-config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ config: cfg })
+  }).catch(err => console.warn('[Sync] Server save config error:', err));
 }
 
 /**
- * Automatis & Langsung: Mengambil data dari Google Sheet secara otomatis (Apps Script / Gviz CSV fallback)
+ * Automatis & Multi-Device: Mengambil data dari Google Sheet secara server-side dan client-fallback
+ * Memastikan data tersinkronisasi 100% identik di seluruh laptop / perangkat pengguna
  */
 export async function fetchAndSyncFromGoogleSheet(
   monthToSync: string,
@@ -222,14 +339,39 @@ export async function fetchAndSyncFromGoogleSheet(
   configOverride?: GoogleSheetConfig
 ): Promise<{ records: MeterRecord[]; success: boolean; count: number }> {
   const cfg = configOverride || getGSheetConfig();
-  const webAppUrl = (cfg.webAppUrl || DEFAULT_GSHEET_CONFIG.webAppUrl).trim();
-  const sheetId = cfg.sheetId || DEFAULT_GSHEET_CONFIG.sheetId;
   const monthUpper = monthToSync.toUpperCase();
 
+  // 1. Percobaan Pertama: Sinkronisasi Terpusat Server-Side (Bypass CORS & Broadcast ke Semua Laptop)
+  try {
+    const serverSyncRes = await fetch('/api/sync-sheet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        month: monthUpper,
+        configOverride: cfg
+      })
+    });
+
+    if (serverSyncRes.ok) {
+      const serverData = await serverSyncRes.json();
+      if (serverData.success && Array.isArray(serverData.records) && serverData.records.length > 0) {
+        saveRecordsLocally(serverData.records);
+        if (serverData.config) {
+          saveGSheetConfigLocally(serverData.config);
+        }
+        return { records: serverData.records, success: true, count: serverData.count };
+      }
+    }
+  } catch (serverErr) {
+    console.warn('[Sync] Server-side sync endpoint note:', serverErr);
+  }
+
+  // 2. Client-Side Fallback (Direct Apps Script Web App)
+  const webAppUrl = (cfg.webAppUrl || DEFAULT_GSHEET_CONFIG.webAppUrl).trim();
+  const sheetId = cfg.sheetId || DEFAULT_GSHEET_CONFIG.sheetId;
   let pulledRecords: MeterRecord[] = [];
   let isSuccess = false;
 
-  // 1. Percobaan Web App (Google Apps Script)
   if (webAppUrl) {
     try {
       const targetUrl = `${webAppUrl}${webAppUrl.includes('?') ? '&' : '?'}sheetName=${encodeURIComponent(monthUpper)}&t=${Date.now()}`;
@@ -245,11 +387,11 @@ export async function fetchAndSyncFromGoogleSheet(
         }
       }
     } catch (err) {
-      console.warn(`[AutoSync] Web App Apps Script fetch error for ${monthUpper}, switching to Gviz CSV...`, err);
+      console.warn(`[AutoSync] Client Web App fetch error for ${monthUpper}, switching to Gviz CSV...`, err);
     }
   }
 
-  // 2. Fallback otomatis ke Google Sheet Gviz CSV Export (bebas kendala CORS di Vercel/Web manapun)
+  // 3. Fallback ke Google Sheet Gviz CSV Export
   if (!isSuccess && sheetId) {
     try {
       const gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(monthUpper)}&t=${Date.now()}`;
@@ -478,12 +620,9 @@ export function parseCSVToRecords(csvText: string): MeterRecord[] {
 
 /**
  * Smart safe merge: Menggabungkan data dari Google Sheet dan data lokal
- * - Baris yang ada di Google Sheet selalu dipertahankan dan menggantikan dataset lama untuk bulan tersebut
- * - Baris untuk bulan lain tetap dipertahankan
- * - Menghilangkan baris header 'ID PEL' atau 'NAMA PELANGGAN' yang tidak sengaja terambil
  */
 export function safeMergeRecords(sheetRecords: MeterRecord[], localRecords: MeterRecord[], fallbackMonth?: string): MeterRecord[] {
-  const targetMonth = (fallbackMonth || 'JULI').toUpperCase();
+  const targetMonth = (fallbackMonth || 'AGUSTUS').toUpperCase();
 
   // 1. Bersihkan baris header atau baris kosong yang masuk dari Google Sheet
   const cleanSheetRecords = sheetRecords.filter(r => {
@@ -526,7 +665,6 @@ export function safeMergeRecords(sheetRecords: MeterRecord[], localRecords: Mete
       const isThisMonth = (m === targetMonth) || (!m && dateUpper.includes(targetMonth));
       if (!isThisMonth) return false;
 
-      // Hanya simpan jika ini murni inputan user baru (bukan seeded mock id GM-2026...)
       const isSeedMock = r.id.startsWith('GM-2026') || r.id.startsWith('IMP-');
       if (isSeedMock) return false;
 
@@ -574,20 +712,10 @@ export function safeMergeRecords(sheetRecords: MeterRecord[], localRecords: Mete
   });
 }
 
-/**
- * Mode Read-Only Protection: Aplikasi tidak pernah mengubah/menulis data ke Google Sheet.
- * Fungsi ini dijaga agar tidak melakukan permintaan POST yang merubah spreadsheet.
- */
 export async function syncAddRecordToSheetBackground(_record: MeterRecord, _config?: GoogleSheetConfig) {
-  // Mode Read-Only Protection: Diabaikan untuk menjaga keaslian data Google Sheet.
   return;
 }
 
-/**
- * Mode Read-Only Protection: Aplikasi tidak pernah mengubah/menulis data ke Google Sheet.
- * Fungsi ini dijaga agar tidak melakukan permintaan POST yang merubah spreadsheet.
- */
 export async function syncUpdateRecordToSheetBackground(_record: MeterRecord, _config?: GoogleSheetConfig) {
-  // Mode Read-Only Protection: Diabaikan untuk menjaga keaslian data Google Sheet.
   return;
 }
