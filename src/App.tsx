@@ -28,7 +28,8 @@ import {
   fetchSharedServerState,
   subscribeToSyncBus,
   syncAddRecordToSheetBackground,
-  syncUpdateRecordToSheetBackground
+  syncUpdateRecordToSheetBackground,
+  forceResetToCanonicalData
 } from './data/storage';
 import { subscribeToRealtimeRecords, testFirestoreConnection } from './lib/firebase';
 
@@ -110,13 +111,16 @@ export default function App() {
     const unsubscribeFirestore = subscribeToRealtimeRecords(
       (fsRecords) => {
         if (fsRecords && fsRecords.length > 0) {
-          setRecords(prev => {
-            const map = new Map<string, MeterRecord>();
-            prev.forEach(r => { if (r.id) map.set(String(r.id), r); });
-            fsRecords.forEach(r => { if (r.id) map.set(String(r.id), r); });
-            const merged = Array.from(map.values());
-            return merged;
-          });
+          if (fsRecords.length >= 100) {
+            setRecords(fsRecords);
+          } else {
+            setRecords(prev => {
+              const map = new Map<string, MeterRecord>();
+              prev.forEach(r => { if (r.id) map.set(String(r.id), r); });
+              fsRecords.forEach(r => { if (r.id) map.set(String(r.id), r); });
+              return Array.from(map.values());
+            });
+          }
         }
       },
       (err) => console.warn('[Firestore Realtime Note]:', err)
@@ -436,6 +440,10 @@ export default function App() {
                 onSelectMonth={handleSelectMonth}
                 onOpenGSheetModal={() => setIsGSheetModalOpen(true)}
                 onTriggerManualSync={() => syncMonthWithSheet(selectedMonth)}
+                onForceResetCanonical={() => {
+                  const canonical = forceResetToCanonicalData();
+                  setRecords(canonical);
+                }}
                 isSyncingSheet={isSyncingSheet}
                 onLogout={handleLogout}
                 onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}

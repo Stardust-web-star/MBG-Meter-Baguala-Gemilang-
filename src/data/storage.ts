@@ -4,7 +4,7 @@ import { normalizeMonthName } from '../utils/monthUtils';
 import { syncRecordsToFirestore, saveSingleRecordToFirestore } from '../lib/firebase';
 
 const STORAGE_KEYS = {
-  RECORDS: 'pln_mbg_meter_records_v11_master_synced',
+  RECORDS: 'pln_mbg_meter_records_v12_canonical_sep103',
   USERS: 'pln_mbg_users_v2',
   CURRENT_USER: 'pln_mbg_current_user_v1',
   GSHEET_CONFIG: 'pln_mbg_gsheet_config_v2',
@@ -98,6 +98,10 @@ function cleanupLegacyStorageKeys(): void {
       'pln_mbg_meter_records_v5',
       'pln_mbg_meter_records_v6',
       'pln_mbg_meter_records_v7',
+      'pln_mbg_meter_records_v8',
+      'pln_mbg_meter_records_v9',
+      'pln_mbg_meter_records_v10',
+      'pln_mbg_meter_records_v11_master_synced',
       'pln_mbg_records',
       'meterRecords'
     ];
@@ -136,6 +140,19 @@ function saveGSheetConfigLocally(cfg: GoogleSheetConfig): void {
   }
 }
 
+export function forceResetToCanonicalData(): MeterRecord[] {
+  cleanupLegacyStorageKeys();
+  const canonical = generateInitialRecords();
+  saveRecordsLocally(canonical);
+  syncRecordsToFirestore(canonical).catch(() => {});
+  fetch('/api/records', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ records: canonical })
+  }).catch(() => {});
+  return canonical;
+}
+
 export function getStoredRecords(): MeterRecord[] {
   cleanupLegacyStorageKeys();
   try {
@@ -143,6 +160,7 @@ export function getStoredRecords(): MeterRecord[] {
     if (!raw) {
       const initial = generateInitialRecords();
       saveRecordsLocally(initial);
+      syncRecordsToFirestore(initial).catch(() => {});
       // Trigger background sync to server
       fetch('/api/records', {
         method: 'POST',
@@ -153,15 +171,18 @@ export function getStoredRecords(): MeterRecord[] {
     }
     const parsed: MeterRecord[] = JSON.parse(raw);
 
-    // Sanity check: Ensure records exist for August and July
+    // Sanity check: Ensure records exist for August, July, and September matches canonical 103 items
     const aug = parsed.filter(r => (r.bulan || '').toUpperCase() === 'AGUSTUS' || (r.tanggal || '').toUpperCase().includes('AGUSTUS'));
     const juli = parsed.filter(r => (r.bulan || '').toUpperCase() === 'JULI' || (r.tanggal || '').toUpperCase().includes('JULI'));
+    const sep = parsed.filter(r => (r.bulan || '').toUpperCase() === 'SEPTEMBER' || (r.tanggal || '').toUpperCase().includes('SEPTEMBER'));
 
-    // If local cache is missing records
-    if (parsed.length < 100 || aug.length === 0 || juli.length === 0) {
-      const initial = generateInitialRecords();
-      saveRecordsLocally(initial);
-      return initial;
+    // Self-healing: If local cache has the old 222 September records, or missing months, auto-reconcile
+    if (parsed.length < 100 || aug.length === 0 || juli.length === 0 || sep.length > 150) {
+      console.log(`[Storage] Auto-healing detected stale cache (Sep: ${sep.length}, Total: ${parsed.length}). Reconciling to canonical master dataset (103 Sep).`);
+      const canonical = generateInitialRecords();
+      saveRecordsLocally(canonical);
+      syncRecordsToFirestore(canonical).catch(() => {});
+      return canonical;
     }
 
     return parsed;
