@@ -14,18 +14,30 @@ import {
   CheckCircle2,
   AlertCircle,
   Lightbulb,
-  Pin
+  Pin,
+  Calendar,
+  Gauge,
+  Target,
+  BarChart3,
+  Layers,
+  ArrowUpRight,
+  Flame
 } from 'lucide-react';
 import { 
   AreaChart, 
   Area, 
   BarChart, 
   Bar, 
+  LineChart,
+  Line,
+  ComposedChart,
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer 
+  ResponsiveContainer,
+  ReferenceLine,
+  Legend
 } from 'recharts';
 
 interface InformasiMenuProps {
@@ -35,6 +47,7 @@ interface InformasiMenuProps {
 }
 
 type TabType = 'eksekutif' | 'petugas' | 'tarif' | 'susut';
+type TrendViewMode = 'volume' | 'scurve' | 'velocity';
 
 export function InformasiMenu({ 
   records, 
@@ -43,6 +56,7 @@ export function InformasiMenu({
 }: InformasiMenuProps) {
   const [activeTab, setActiveTab] = useState<TabType>('eksekutif');
   const [showMonthSelect, setShowMonthSelect] = useState(false);
+  const [trendViewMode, setTrendViewMode] = useState<TrendViewMode>('volume');
 
   // Dynamic quantitative calculations based on real dataset records
   const metrics = useMemo(() => {
@@ -183,36 +197,161 @@ export function InformasiMenu({
       value: tarifCountMap[t]
     }));
 
-    // Extract daily trend dynamically from records
-    const dateMap: Record<string, { date: string; selesai: number; pending: number }> = {};
-    records.forEach(r => {
-      let dateLabel = r.tanggal || 'N/A';
-      const dayMatch = dateLabel.match(/(\d{1,2})\s+([A-Z]+)/i);
-      if (dayMatch) {
-        const day = dayMatch[1].padStart(2, '0');
-        const monthStr = dayMatch[2].substring(0, 3).toUpperCase();
-        dateLabel = `${day} ${monthStr}`;
-      } else if (dateLabel.length > 10) {
-        dateLabel = dateLabel.substring(0, 10);
+    // -------------------------------------------------------------
+    // ADVANCED ROBUST DAILY TREND & S-CURVE CALCULATION
+    // -------------------------------------------------------------
+    const monthShortMap: Record<string, string> = {
+      'JANUARI': 'JAN', 'FEBRUARI': 'FEB', 'MARET': 'MAR', 'APRIL': 'APR',
+      'MEI': 'MEI', 'JUNI': 'JUN', 'JULI': 'JUL', 'AGUSTUS': 'AGU',
+      'SEPTEMBER': 'SEP', 'OKTOBER': 'OKT', 'NOVEMBER': 'NOV', 'DESEMBER': 'DES'
+    };
+    const defaultMShort = monthShortMap[selectedMonth.toUpperCase()] || selectedMonth.substring(0, 3).toUpperCase();
+
+    function parseRecordDay(rawTanggal: string, defaultMonthStr: string): { day: number; label: string; fullDate: string } {
+      if (!rawTanggal) {
+        return { day: 1, label: `01 ${defaultMShort}`, fullDate: `01 ${defaultMonthStr} 2026` };
+      }
+      const str = String(rawTanggal).trim();
+
+      // Check '(Tgl X)' or '(TGL X)' e.g. "JULI 2026 (Tgl 5)" or "SEPTEMBER 2026 (Tgl 1)"
+      const tglMatch = str.match(/\(Tgl\s*(\d+)\)/i) || str.match(/Tgl\s*(\d+)/i);
+      if (tglMatch) {
+        const d = parseInt(tglMatch[1], 10);
+        return { 
+          day: d, 
+          label: `${String(d).padStart(2, '0')} ${defaultMShort}`,
+          fullDate: `${String(d).padStart(2, '0')} ${defaultMonthStr} 2026`
+        };
       }
 
-      if (!dateMap[dateLabel]) {
-        dateMap[dateLabel] = { date: dateLabel, selesai: 0, pending: 0 };
+      // Check "SENIN 3 AGUSTUS 2026" or "3 AGUSTUS 2026"
+      const indMatch = str.match(/(?:SENIN|SELASA|RABU|KAMIS|JUMAT|SABTU|MINGGU)?\s*(\d{1,2})\s+([A-Z]+)/i);
+      if (indMatch) {
+        const d = parseInt(indMatch[1], 10);
+        const mKey = indMatch[2].toUpperCase();
+        const mShort = monthShortMap[mKey] || mKey.substring(0, 3);
+        return { 
+          day: d, 
+          label: `${String(d).padStart(2, '0')} ${mShort}`,
+          fullDate: `${String(d).padStart(2, '0')} ${mKey} 2026`
+        };
       }
+
+      // Check '03/08/2026' or '2026-08-03'
+      const slashMatch = str.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      if (slashMatch) {
+        const d = parseInt(slashMatch[1], 10);
+        return { 
+          day: d, 
+          label: `${String(d).padStart(2, '0')} ${defaultMShort}`,
+          fullDate: `${String(d).padStart(2, '0')} ${defaultMonthStr} 2026`
+        };
+      }
+
+      // Numeric fallback
+      const numMatch = str.match(/\b(\d{1,2})\b/);
+      if (numMatch) {
+        const d = parseInt(numMatch[1], 10);
+        if (d >= 1 && d <= 31) {
+          return { 
+            day: d, 
+            label: `${String(d).padStart(2, '0')} ${defaultMShort}`,
+            fullDate: `${String(d).padStart(2, '0')} ${defaultMonthStr} 2026`
+          };
+        }
+      }
+
+      return { day: 1, label: `01 ${defaultMShort}`, fullDate: `01 ${defaultMonthStr} 2026` };
+    }
+
+    const dayMap: Record<number, {
+      day: number;
+      date: string;
+      fullDate: string;
+      selesai: number;
+      pending: number;
+      total: number;
+    }> = {};
+
+    records.forEach(r => {
+      const { day, label, fullDate } = parseRecordDay(r.tanggal, selectedMonth);
+      if (!dayMap[day]) {
+        dayMap[day] = {
+          day,
+          date: label,
+          fullDate,
+          selesai: 0,
+          pending: 0,
+          total: 0
+        };
+      }
+      dayMap[day].total += 1;
       if (r.status === 'SELESAI') {
-        dateMap[dateLabel].selesai += 1;
+        dayMap[day].selesai += 1;
       } else {
-        dateMap[dateLabel].pending += 1;
+        dayMap[day].pending += 1;
       }
     });
 
-    let dailyTrendData = Object.values(dateMap);
-    if (dailyTrendData.length === 0) {
-      dailyTrendData = [
-        { date: '01', selesai: 15, pending: 0 },
-        { date: '05', selesai: 17, pending: 0 },
-      ];
-    }
+    const sortedDays = Object.values(dayMap).sort((a, b) => a.day - b.day);
+
+    let runningSelesai = 0;
+    let runningTotal = 0;
+    const totalRecords = records.length;
+    const activeDaysCount = sortedDays.length || 1;
+
+    let peakVolume = 0;
+    let peakDayLabel = '-';
+    let maxDailyVolume = 0;
+
+    const dailyTrendData = sortedDays.map((item, idx, arr) => {
+      runningSelesai += item.selesai;
+      runningTotal += item.total;
+      
+      // Target linear benchmark line (cumulative ideal progress pace)
+      const idealCumulativeTarget = Math.min(
+        totalRecords, 
+        Math.round(((idx + 1) / activeDaysCount) * totalRecords)
+      );
+
+      // 3-day moving average
+      const windowStart = Math.max(0, idx - 2);
+      const windowItems = arr.slice(windowStart, idx + 1);
+      const windowAvg = Math.round(
+        windowItems.reduce((acc, curr) => acc + curr.selesai, 0) / windowItems.length
+      );
+
+      if (item.selesai > peakVolume) {
+        peakVolume = item.selesai;
+        peakDayLabel = item.date;
+      }
+
+      if (item.total > maxDailyVolume) {
+        maxDailyVolume = item.total;
+      }
+
+      const dailyRate = item.total > 0 ? Math.round((item.selesai / item.total) * 100) : 100;
+
+      return {
+        ...item,
+        kumulatifSelesai: runningSelesai,
+        kumulatifTarget: idealCumulativeTarget,
+        targetPace: Math.max(1, Math.round(totalRecords / activeDaysCount)),
+        movingAvg: windowAvg,
+        dailyRate,
+        kumulatifPercent: totalRecords > 0 ? Math.round((runningSelesai / totalRecords) * 100) : 0
+      };
+    });
+
+    const avgDailySelesai = activeDaysCount > 0 ? (selesai / activeDaysCount).toFixed(1) : '0';
+    const trendMaxY = Math.max(maxDailyVolume, 15);
+    const trendYAxisCeil = Math.ceil((trendMaxY * 1.25) / 5) * 5;
+
+    let speedStatus = 'Optimal & Cepat';
+    const numAvg = parseFloat(avgDailySelesai);
+    if (numAvg >= 15) speedStatus = 'Sangat Cepat (Tinggi)';
+    else if (numAvg >= 8) speedStatus = 'Stabil & Terkendali';
+    else speedStatus = 'Sedang Berjalan';
 
     return {
       total,
@@ -228,6 +367,12 @@ export function InformasiMenu({
       officerList,
       tarifChartData,
       dailyTrendData,
+      activeDaysCount,
+      avgDailySelesai,
+      peakVolume,
+      peakDayLabel,
+      trendYAxisCeil,
+      speedStatus,
       backlogText,
       recommendations
     };
@@ -413,50 +558,424 @@ export function InformasiMenu({
 
             {/* Bottom 2 Columns Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              {/* Left Box: Trend Kecepatan Penyelesaian */}
+              {/* Left Box: Trend Kecepatan Penyelesaian (Upgraded Multi-Mode Executive Chart) */}
               <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
                 <div>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
+                  {/* Title & View Switcher */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
                     <div>
-                      <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
-                        Tren Kecepatan Penyelesaian Penggantian Meter Harian
-                      </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Volume harian meter Selesai vs Belum
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="font-black text-sm text-slate-900 dark:text-slate-100 tracking-tight">
+                          Tren Kecepatan Penyelesaian Penggantian Meter Harian
+                        </h3>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        {trendViewMode === 'volume' && 'Distribusi volume harian meter Selesai vs Pending & Moving Average'}
+                        {trendViewMode === 'scurve' && 'Kurva Kumulatif (S-Curve) Realisasi vs Target Progresi'}
+                        {trendViewMode === 'velocity' && 'Ritme & Kecepatan Penggantian Harian vs Target Benchmark'}
                       </p>
                     </div>
-                    {/* Legend */}
-                    <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-600 dark:text-slate-400 shrink-0 mt-1 sm:mt-0">
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-                        Pending / Belum
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-teal-500"></span>
-                        Selesai Terganti
-                      </span>
+
+                    {/* Interactive Mode Switcher Buttons */}
+                    <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800/90 rounded-lg border border-slate-200/80 dark:border-slate-700/80 text-[10px] font-bold shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setTrendViewMode('volume')}
+                        className={`px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                          trendViewMode === 'volume'
+                            ? 'bg-blue-600 text-white shadow-2xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                        }`}
+                        title="Tampilkan volume harian"
+                      >
+                        <BarChart3 className="w-3 h-3" />
+                        <span>Harian</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setTrendViewMode('scurve')}
+                        className={`px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                          trendViewMode === 'scurve'
+                            ? 'bg-blue-600 text-white shadow-2xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                        }`}
+                        title="Tampilkan Kurva S-Curve Kumulatif"
+                      >
+                        <TrendingUp className="w-3 h-3" />
+                        <span>S-Curve</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setTrendViewMode('velocity')}
+                        className={`px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                          trendViewMode === 'velocity'
+                            ? 'bg-blue-600 text-white shadow-2xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                        }`}
+                        title="Tampilkan laju kecepatan (velocity)"
+                      >
+                        <Flame className="w-3 h-3" />
+                        <span>Kecepatan</span>
+                      </button>
                     </div>
                   </div>
 
-                  <div className="h-60 w-full mt-3">
+                  {/* 4 Mini KPI Badges */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3.5">
+                    <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 rounded-lg p-2 flex flex-col justify-between">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1">
+                        <Zap className="w-3 h-3 text-amber-500" />
+                        Rata-rata/Hari
+                      </span>
+                      <p className="text-xs font-black text-slate-900 dark:text-slate-100 font-mono mt-0.5">
+                        {metrics.avgDailySelesai} <span className="text-[10px] font-normal text-slate-400">Unit</span>
+                      </p>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 rounded-lg p-2 flex flex-col justify-between">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1">
+                        <Flame className="w-3 h-3 text-rose-500" />
+                        Puncak Tertinggi
+                      </span>
+                      <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
+                        {metrics.peakVolume} <span className="text-[10px] font-normal text-slate-400">Unit ({metrics.peakDayLabel})</span>
+                      </p>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 rounded-lg p-2 flex flex-col justify-between">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-blue-500" />
+                        Hari Operasi
+                      </span>
+                      <p className="text-xs font-black text-slate-900 dark:text-slate-100 font-mono mt-0.5">
+                        {metrics.activeDaysCount} <span className="text-[10px] font-normal text-slate-400">Hari Kerja</span>
+                      </p>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 rounded-lg p-2 flex flex-col justify-between">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-1">
+                        <Gauge className="w-3 h-3 text-teal-500" />
+                        Status Ritme
+                      </span>
+                      <p className="text-[11px] font-black text-blue-600 dark:text-blue-400 truncate mt-0.5">
+                        {metrics.speedStatus}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Dynamic Legend */}
+                  <div className="flex flex-wrap items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-400 pb-2 border-b border-slate-100 dark:border-slate-800 gap-2">
+                    {trendViewMode === 'volume' && (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-xs bg-emerald-500"></span>
+                            Selesai Harian
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-xs bg-amber-500"></span>
+                            Pending / Belum
+                          </span>
+                        </div>
+                        <span className="flex items-center gap-1 text-[10px] text-sky-600 dark:text-sky-400">
+                          <span className="w-3 h-0.5 bg-sky-500 inline-block"></span>
+                          Tren Rata-rata Bergerak
+                        </span>
+                      </>
+                    )}
+
+                    {trendViewMode === 'scurve' && (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                            Akumulasi Realisasi (S-Curve)
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-0.5 bg-indigo-400 inline-block"></span>
+                            Benchmark Target Linear
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                          Total Target: {metrics.total} Unit
+                        </span>
+                      </>
+                    )}
+
+                    {trendViewMode === 'velocity' && (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-teal-500"></span>
+                            Kecepatan Harian (Unit/Hari)
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-0.5 bg-rose-400 inline-block"></span>
+                            Pace Rata-rata ({metrics.avgDailySelesai})
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">
+                          Puncak: {metrics.peakVolume} Unit
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Chart Stage */}
+                  <div className="h-64 w-full mt-3">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={metrics.dailyTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="colorSelesai" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
-                        <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} domain={[0, 20]} ticks={[0, 5, 10, 15, 20]} axisLine={false} tickLine={false} />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', fontSize: '11px', border: 'none' }}
-                        />
-                        <Area type="monotone" dataKey="selesai" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorSelesai)" name="Selesai" />
-                        <Area type="monotone" dataKey="pending" stroke="#f59e0b" strokeWidth={2} fillOpacity={0} name="Pending" />
-                      </AreaChart>
+                      {trendViewMode === 'volume' ? (
+                        <ComposedChart data={metrics.dailyTrendData} margin={{ top: 12, right: 10, left: -20, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colorSelesaiVolume" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#64748b" opacity={0.2} />
+                          <XAxis 
+                            dataKey="date" 
+                            tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} 
+                            axisLine={{ stroke: '#cbd5e1', strokeWidth: 1 }} 
+                            tickLine={false} 
+                          />
+                          <YAxis 
+                            domain={[0, metrics.trendYAxisCeil]} 
+                            tick={{ fontSize: 10, fill: '#94a3b8' }} 
+                            axisLine={false} 
+                            tickLine={false} 
+                          />
+                          <Tooltip
+                            content={({ active, payload, label }) => {
+                              if (active && payload && payload.length) {
+                                const d = payload[0].payload;
+                                return (
+                                  <div className="bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md p-3 rounded-xl border border-slate-700/80 shadow-xl text-white text-xs space-y-1.5 min-w-[200px]">
+                                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
+                                      <span className="font-bold text-slate-200">📅 {d.fullDate || label}</span>
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-mono font-bold">
+                                        Hari ke-{d.day}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center justify-between font-medium">
+                                      <span className="text-emerald-400 flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                        Selesai Terganti:
+                                      </span>
+                                      <span className="font-bold font-mono text-emerald-300">{d.selesai} Unit</span>
+                                    </div>
+                                    {d.pending > 0 && (
+                                      <div className="flex items-center justify-between font-medium">
+                                        <span className="text-amber-400 flex items-center gap-1.5">
+                                          <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                                          Pending / Belum:
+                                        </span>
+                                        <span className="font-bold font-mono text-amber-300">{d.pending} Unit</span>
+                                      </div>
+                                    )}
+                                    <div className="flex items-center justify-between font-medium text-slate-300">
+                                      <span>Total Hari Ini:</span>
+                                      <span className="font-bold font-mono text-slate-100">{d.total} Unit</span>
+                                    </div>
+                                    <div className="pt-1 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
+                                      <span>Kumulatif s/d Hari Ini:</span>
+                                      <span className="font-bold font-mono text-sky-400">{d.kumulatifSelesai} / {metrics.total} ({d.kumulatifPercent}%)</span>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Area 
+                            type="monotone" 
+                            dataKey="selesai" 
+                            stroke="#10b981" 
+                            strokeWidth={2} 
+                            fillOpacity={1} 
+                            fill="url(#colorSelesaiVolume)" 
+                            name="Volume Selesai" 
+                          />
+                          <Bar 
+                            dataKey="selesai" 
+                            fill="#10b981" 
+                            radius={[4, 4, 0, 0]} 
+                            maxBarSize={28}
+                            name="Selesai" 
+                          />
+                          <Bar 
+                            dataKey="pending" 
+                            fill="#f59e0b" 
+                            radius={[4, 4, 0, 0]} 
+                            maxBarSize={28}
+                            name="Pending" 
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="movingAvg" 
+                            stroke="#38bdf8" 
+                            strokeWidth={2.5} 
+                            strokeDasharray="4 4"
+                            dot={{ r: 2.5, fill: '#38bdf8' }}
+                            name="Moving Avg" 
+                          />
+                        </ComposedChart>
+                      ) : trendViewMode === 'scurve' ? (
+                        <ComposedChart data={metrics.dailyTrendData} margin={{ top: 12, right: 10, left: -10, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colorScurve" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.45} />
+                              <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#64748b" opacity={0.2} />
+                          <XAxis 
+                            dataKey="date" 
+                            tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} 
+                            axisLine={{ stroke: '#cbd5e1', strokeWidth: 1 }} 
+                            tickLine={false} 
+                          />
+                          <YAxis 
+                            domain={[0, metrics.total]} 
+                            tick={{ fontSize: 10, fill: '#94a3b8' }} 
+                            axisLine={false} 
+                            tickLine={false} 
+                          />
+                          <Tooltip
+                            content={({ active, payload, label }) => {
+                              if (active && payload && payload.length) {
+                                const d = payload[0].payload;
+                                return (
+                                  <div className="bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md p-3 rounded-xl border border-slate-700/80 shadow-xl text-white text-xs space-y-1.5 min-w-[210px]">
+                                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
+                                      <span className="font-bold text-slate-200">📈 {d.fullDate || label}</span>
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono font-bold">
+                                        {d.kumulatifPercent}%
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center justify-between font-medium">
+                                      <span className="text-cyan-400 flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                                        Akumulasi Realisasi:
+                                      </span>
+                                      <span className="font-bold font-mono text-cyan-300">{d.kumulatifSelesai} Unit</span>
+                                    </div>
+                                    <div className="flex items-center justify-between font-medium text-indigo-300">
+                                      <span>Target Linear Ideal:</span>
+                                      <span className="font-bold font-mono text-indigo-200">{d.kumulatifTarget} Unit</span>
+                                    </div>
+                                    <div className="pt-1 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
+                                      <span>Selesai di Hari Ini:</span>
+                                      <span className="font-bold font-mono text-emerald-400">+{d.selesai} Unit</span>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Area 
+                            type="monotone" 
+                            dataKey="kumulatifSelesai" 
+                            stroke="#06b6d4" 
+                            strokeWidth={3} 
+                            fillOpacity={1} 
+                            fill="url(#colorScurve)" 
+                            name="Realisasi Kumulatif" 
+                          />
+                          <Line 
+                            type="linear" 
+                            dataKey="kumulatifTarget" 
+                            stroke="#818cf8" 
+                            strokeWidth={2} 
+                            strokeDasharray="4 4"
+                            dot={false}
+                            name="Benchmark Target" 
+                          />
+                        </ComposedChart>
+                      ) : (
+                        <AreaChart data={metrics.dailyTrendData} margin={{ top: 12, right: 10, left: -20, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colorVelocity" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.45} />
+                              <stop offset="95%" stopColor="#14b8a6" stopOpacity={0.0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#64748b" opacity={0.2} />
+                          <XAxis 
+                            dataKey="date" 
+                            tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} 
+                            axisLine={{ stroke: '#cbd5e1', strokeWidth: 1 }} 
+                            tickLine={false} 
+                          />
+                          <YAxis 
+                            domain={[0, metrics.trendYAxisCeil]} 
+                            tick={{ fontSize: 10, fill: '#94a3b8' }} 
+                            axisLine={false} 
+                            tickLine={false} 
+                          />
+                          <Tooltip
+                            content={({ active, payload, label }) => {
+                              if (active && payload && payload.length) {
+                                const d = payload[0].payload;
+                                return (
+                                  <div className="bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md p-3 rounded-xl border border-slate-700/80 shadow-xl text-white text-xs space-y-1.5 min-w-[190px]">
+                                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
+                                      <span className="font-bold text-slate-200">⚡ {d.fullDate || label}</span>
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 font-mono font-bold">
+                                        Speed
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center justify-between font-medium">
+                                      <span className="text-teal-400">Kecepatan Pasang:</span>
+                                      <span className="font-bold font-mono text-teal-300">{d.selesai} Unit / Hari</span>
+                                    </div>
+                                    <div className="flex items-center justify-between font-medium text-slate-300">
+                                      <span>Rata-rata Target:</span>
+                                      <span className="font-bold font-mono text-slate-100">{metrics.avgDailySelesai} Unit / Hari</span>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <ReferenceLine 
+                            y={parseFloat(metrics.avgDailySelesai)} 
+                            stroke="#f43f5e" 
+                            strokeDasharray="4 4" 
+                            strokeWidth={1.5}
+                            label={{ 
+                              value: `Rata-rata (${metrics.avgDailySelesai})`, 
+                              fill: '#f43f5e', 
+                              fontSize: 10, 
+                              position: 'top' 
+                            }} 
+                          />
+                          <Area 
+                            type="monotone" 
+                            dataKey="selesai" 
+                            stroke="#14b8a6" 
+                            strokeWidth={2.5} 
+                            fillOpacity={1} 
+                            fill="url(#colorVelocity)" 
+                            name="Kecepatan Harian" 
+                          />
+                        </AreaChart>
+                      )}
                     </ResponsiveContainer>
+                  </div>
+
+                  {/* Footnote / Contextual Insight */}
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <Sparkles className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                      <span>
+                        Puncak realisasi tercapai pada <strong>{metrics.peakDayLabel}</strong> ({metrics.peakVolume} unit) dengan rata-rata <strong>{metrics.avgDailySelesai} unit/hari</strong>.
+                      </span>
+                    </span>
                   </div>
                 </div>
               </div>
