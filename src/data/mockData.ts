@@ -56,7 +56,7 @@ const AUGUST_OFFICER_STATS: Record<PetugasName, { belum: number; selesai: number
   'AUNUR': { belum: 0, selesai: 7 },
   'FEKI': { belum: 0, selesai: 32 },
   'FRANS': { belum: 0, selesai: 1 },
-  'GABRIEL': { belum: 2, selesai: 45 },
+  'GABRIEL': { belum: 0, selesai: 47 },
   'HANS': { belum: 0, selesai: 19 },
   'HARDIN': { belum: 0, selesai: 7 },
   'ONYONG': { belum: 0, selesai: 45 },
@@ -67,7 +67,7 @@ const AUGUST_OFFICER_STATS: Record<PetugasName, { belum: number; selesai: number
   'SALOMO': { belum: 0, selesai: 8 },
   'VAL': { belum: 0, selesai: 19 },
   'YONO': { belum: 0, selesai: 13 },
-  'YUSRIL': { belum: 1, selesai: 51 },
+  'YUSRIL': { belum: 0, selesai: 52 },
 };
 
 // Target counts per officer for July 2026 matching Google Sheet "JULI" (100% Selesai, 0 Belum):
@@ -127,11 +127,11 @@ const REAL_SEED_ROWS: Partial<MeterRecord>[] = [
     noSnMaterialMcb: '-',
     kabelTw: '-',
     segel: '-',
-    standBongkar: '-',
+    standBongkar: '0',
     jenis: 'PRA BAYAR',
     gantiMeter: 'METER TUA',
     petugas: 'GABRIEL',
-    status: 'BELUM',
+    status: 'SELESAI',
     bulan: 'AGUSTUS',
     alamat: 'Kecamatan Baguala, Kota Ambon'
   },
@@ -148,11 +148,11 @@ const REAL_SEED_ROWS: Partial<MeterRecord>[] = [
     noSnMaterialMcb: '-',
     kabelTw: '-',
     segel: '-',
-    standBongkar: '-',
+    standBongkar: '0',
     jenis: 'PRA BAYAR',
     gantiMeter: 'METER TUA',
     petugas: 'GABRIEL',
-    status: 'BELUM',
+    status: 'SELESAI',
     bulan: 'AGUSTUS',
     alamat: 'Kecamatan Baguala, Kota Ambon'
   },

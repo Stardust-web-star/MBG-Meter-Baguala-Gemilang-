@@ -126,12 +126,11 @@ function loadDb(): AppDatabase {
       const parsed = JSON.parse(raw);
       let records: MeterRecord[] = parsed.records || [];
 
-      // Check if records need auto-initialization or migration
+      // Check if records need auto-initialization
       const augustRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'AGUSTUS' || (r.tanggal || '').toUpperCase().includes('AGUSTUS'));
-      const augustBelum = augustRecords.filter(r => r.status === 'BELUM').length;
       const julyRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'JULI' || (r.tanggal || '').toUpperCase().includes('JULI'));
 
-      if (records.length < 100 || augustRecords.length === 0 || julyRecords.length === 0 || augustBelum === 0) {
+      if (records.length < 50 || augustRecords.length === 0 || julyRecords.length === 0) {
         const canonical = generateInitialRecords();
         records = canonical;
         parsed.records = canonical;
@@ -630,15 +629,16 @@ app.post('/api/sync-sheet', async (req, res) => {
   }
 });
 
-// Real-time Webhook endpoint from Google Sheet Apps Script (Triggered on cell edit)
+// Real-time Webhook endpoint from Google Sheet Apps Script (Triggered on cell edit or manual sync)
 app.post('/api/webhook/sheet-update', (req, res) => {
   try {
     const payload = req.body;
     const db = loadDb();
     
     // Case 1: Full batch sync from Apps Script menu
-    if (payload.action === 'full_sync' && Array.isArray(payload.records)) {
-      const merged = mergeRecords(payload.records, db.records, db.config.selectedSheetTab || 'AGUSTUS');
+    if ((payload.action === 'full_sync' || payload.action === 'syncBatch' || payload.action === 'safeUpsert') && Array.isArray(payload.records)) {
+      const targetMonth = payload.sheetName || db.config.selectedSheetTab || 'AGUSTUS';
+      const merged = mergeRecords(payload.records, db.records, targetMonth);
       db.records = merged;
       db.config.lastSyncTime = new Date().toISOString();
       db.config.syncStatus = 'connected';
@@ -653,29 +653,78 @@ app.post('/api/webhook/sheet-update', (req, res) => {
       db.logs = db.logs.slice(0, 100);
       saveDb(db);
       syncToFirestoreServer(merged).catch(() => {});
+      console.log(`[Webhook] Full sync applied from Google Sheet: ${payload.records.length} records`);
       return res.json({ success: true, message: 'Full sync applied', count: db.records.length, lastUpdated: db.lastUpdated });
     }
 
-    // Case 2: Real-time single row cell edit from onEdit trigger
-    if (payload.event === 'cell_edit' && Array.isArray(payload.data)) {
-      const rowData = payload.data;
-      const sheetName = (payload.sheetName || '').toUpperCase();
+    // Case 2: Real-time single row cell edit from onEdit or installedOnEdit trigger
+    if (payload.event === 'cell_edit' || payload.data || payload.record) {
+      let rowData = Array.isArray(payload.data) ? payload.data : [];
+      let rowObj = payload.record || (typeof payload.data === 'object' && !Array.isArray(payload.data) ? payload.data : null);
+
+      const sheetName = String(payload.sheetName || (rowObj && rowObj.bulan) || '').toUpperCase();
       const defaultMonth = sheetName.includes('JUL') ? 'JULI' : (sheetName.includes('SEP') ? 'SEPTEMBER' : 'AGUSTUS');
 
-      const idpel = String(rowData[1] || '').trim();
-      const nama = String(rowData[2] || '').trim();
-      if (!idpel && !nama) {
+      let idpel = '';
+      let nama = '';
+      let rawStatus = '';
+      let rawNoBaru = '';
+      let rawNoLama = '';
+      let rawPetugas = '';
+      let rawAgenda = '';
+      let rawTarif = 'R1';
+      let rawDaya = 1300;
+      let rawKwh = '-';
+      let rawMcb = '-';
+      let rawKabel = '-';
+      let rawSegel = '-';
+      let rawStand = '-';
+      let rawJenis = 'PRA BAYAR';
+      let rawGanti = 'METER TUA';
+      let rawAlamat = 'Wilayah ULP Baguala';
+      let rawTanggal = `SENIN 3 ${defaultMonth} 2026`;
+
+      if (rowData.length > 0) {
+        rawTanggal = String(rowData[0] || rawTanggal);
+        idpel = String(rowData[1] || '').trim();
+        nama = String(rowData[2] || '').trim();
+        rawTarif = String(rowData[3] || 'R1').trim();
+        rawDaya = parseInt(rowData[4]) || 1300;
+        rawNoLama = String(rowData[5] || '-').trim();
+        rawNoBaru = String(rowData[6] || '-').trim();
+        rawAgenda = String(rowData[7] || '-').trim();
+        rawKwh = String(rowData[8] || '-').trim();
+        rawMcb = String(rowData[9] || '-').trim();
+        rawKabel = String(rowData[10] || '-').trim();
+        rawSegel = String(rowData[11] || '-').trim();
+        rawStand = String(rowData[12] || '-').trim();
+        rawJenis = String(rowData[13] || 'PRA BAYAR').toUpperCase();
+        rawGanti = String(rowData[14] || 'METER TUA').toUpperCase();
+        rawPetugas = String(rowData[15] || '').toUpperCase().trim();
+        rawStatus = String(rowData[16] || '').toUpperCase().trim();
+        rawAlamat = String(rowData[17] || 'Wilayah ULP Baguala').trim();
+      } else if (rowObj) {
+        idpel = String(rowObj.idPelanggan || '').trim();
+        nama = String(rowObj.namaPelanggan || '').trim();
+        rawStatus = String(rowObj.status || '').toUpperCase().trim();
+        rawNoBaru = String(rowObj.noMeterBaru || '').trim();
+        rawNoLama = String(rowObj.noMeterLama || '').trim();
+        rawPetugas = String(rowObj.petugas || '').toUpperCase().trim();
+        rawAgenda = String(rowObj.noAgenda || '').trim();
+        rawTarif = String(rowObj.tarif || 'R1').trim();
+        rawDaya = parseInt(rowObj.daya) || 1300;
+        rawTanggal = String(rowObj.tanggal || rawTanggal);
+      }
+
+      if (!idpel && !nama && !rawAgenda) {
         return res.json({ success: true, message: 'Ignored empty row edit' });
       }
 
-      const rawPetugas = String(rowData[15] || '').toUpperCase().trim();
       let matchedPetugas: PetugasName = 'GABRIEL';
       const found = PETUGAS_LIST.find(p => rawPetugas.includes(p) || p.includes(rawPetugas));
       if (found) matchedPetugas = found as PetugasName;
       else if (rawPetugas && rawPetugas !== '-') matchedPetugas = rawPetugas as PetugasName;
 
-      const rawStatus = String(rowData[16] || '').toUpperCase().trim();
-      const rawNoBaru = String(rowData[6] || '').trim();
       const hasMeterBaru = rawNoBaru !== '' && rawNoBaru !== '-' && rawNoBaru.length >= 4;
 
       let recordStatus: 'SELESAI' | 'BELUM' = 'BELUM';
@@ -687,62 +736,62 @@ app.post('/api/webhook/sheet-update', (req, res) => {
         recordStatus = hasMeterBaru ? 'SELESAI' : 'BELUM';
       }
 
-      const rawJenis = String(rowData[13] || '').toUpperCase();
       const recordJenis = rawJenis.includes('PASKA') || rawJenis.includes('PASCA') ? 'PASKA BAYAR' : 'PRA BAYAR';
-
-      const rawGanti = String(rowData[14] || '').toUpperCase();
       const recordGanti = rawGanti.includes('GANGGUAN') || rawGanti.includes('HILANG') || rawGanti.includes('RUSAK') ? 'METER GANGGUAN' : 'METER TUA';
 
-      // Find existing record
-      const existingIdx = db.records.findIndex(r => 
-        (idpel && String(r.idPelanggan).trim() === idpel) || 
-        (rowData[7] && String(rowData[7]).trim() !== '-' && String(r.noAgenda).trim() === String(rowData[7]).trim())
-      );
+      // Find existing record by multiple keys
+      const existingIdx = db.records.findIndex(r => {
+        if (idpel && String(r.idPelanggan).trim() === idpel) return true;
+        if (rawAgenda && rawAgenda !== '-' && String(r.noAgenda).trim() === rawAgenda) return true;
+        if (nama && nama.length > 3 && String(r.namaPelanggan).toUpperCase().trim() === nama.toUpperCase().trim()) return true;
+        if (rawNoLama && rawNoLama !== '-' && String(r.noMeterLama).trim() === rawNoLama) return true;
+        return false;
+      });
 
       if (existingIdx !== -1) {
         db.records[existingIdx] = {
           ...db.records[existingIdx],
-          tanggal: String(rowData[0] || db.records[existingIdx].tanggal),
+          tanggal: rawTanggal || db.records[existingIdx].tanggal,
           namaPelanggan: nama || db.records[existingIdx].namaPelanggan,
-          tarif: String(rowData[3] || db.records[existingIdx].tarif),
-          daya: parseInt(rowData[4]) || db.records[existingIdx].daya,
-          noMeterLama: String(rowData[5] || db.records[existingIdx].noMeterLama),
-          noMeterBaru: String(rowData[6] || db.records[existingIdx].noMeterBaru),
-          noAgenda: String(rowData[7] || db.records[existingIdx].noAgenda),
-          noSnMaterialKwh: String(rowData[8] || db.records[existingIdx].noSnMaterialKwh),
-          noSnMaterialMcb: String(rowData[9] || db.records[existingIdx].noSnMaterialMcb),
-          kabelTw: String(rowData[10] || db.records[existingIdx].kabelTw),
-          segel: String(rowData[11] || db.records[existingIdx].segel),
-          standBongkar: String(rowData[12] || db.records[existingIdx].standBongkar),
+          tarif: rawTarif || db.records[existingIdx].tarif,
+          daya: rawDaya || db.records[existingIdx].daya,
+          noMeterLama: rawNoLama || db.records[existingIdx].noMeterLama,
+          noMeterBaru: rawNoBaru || db.records[existingIdx].noMeterBaru,
+          noAgenda: rawAgenda || db.records[existingIdx].noAgenda,
+          noSnMaterialKwh: rawKwh !== '-' ? rawKwh : db.records[existingIdx].noSnMaterialKwh,
+          noSnMaterialMcb: rawMcb !== '-' ? rawMcb : db.records[existingIdx].noSnMaterialMcb,
+          kabelTw: rawKabel !== '-' ? rawKabel : db.records[existingIdx].kabelTw,
+          segel: rawSegel !== '-' ? rawSegel : db.records[existingIdx].segel,
+          standBongkar: rawStand !== '-' ? rawStand : db.records[existingIdx].standBongkar,
           jenis: recordJenis,
           gantiMeter: recordGanti,
           petugas: matchedPetugas,
           status: recordStatus,
-          alamat: String(rowData[17] || db.records[existingIdx].alamat),
-          bulan: defaultMonth,
+          alamat: rawAlamat || db.records[existingIdx].alamat,
+          bulan: normalizeMonthName(db.records[existingIdx].bulan || defaultMonth),
           updatedAt: new Date().toISOString()
         };
       } else {
         const newRecord: MeterRecord = {
           id: `GS-${idpel || Date.now()}`,
-          tanggal: String(rowData[0] || 'SENIN 3 AGUSTUS 2026'),
+          tanggal: rawTanggal,
           idPelanggan: idpel || `411300${Math.floor(100000 + Math.random() * 900000)}`,
           namaPelanggan: nama || 'Pelanggan',
-          tarif: String(rowData[3] || 'R1'),
-          daya: parseInt(rowData[4]) || 1300,
-          noMeterLama: String(rowData[5] || '-'),
-          noMeterBaru: String(rowData[6] || '-'),
-          noAgenda: String(rowData[7] || '-'),
-          noSnMaterialKwh: String(rowData[8] || '-'),
-          noSnMaterialMcb: String(rowData[9] || '-'),
-          kabelTw: String(rowData[10] || '-'),
-          segel: String(rowData[11] || '-'),
-          standBongkar: String(rowData[12] || '-'),
+          tarif: rawTarif,
+          daya: rawDaya,
+          noMeterLama: rawNoLama,
+          noMeterBaru: rawNoBaru,
+          noAgenda: rawAgenda,
+          noSnMaterialKwh: rawKwh,
+          noSnMaterialMcb: rawMcb,
+          kabelTw: rawKabel,
+          segel: rawSegel,
+          standBongkar: rawStand,
           jenis: recordJenis,
           gantiMeter: recordGanti,
           petugas: matchedPetugas,
           status: recordStatus,
-          alamat: String(rowData[17] || 'Wilayah ULP Baguala'),
+          alamat: rawAlamat,
           bulan: defaultMonth,
           updatedAt: new Date().toISOString()
         };
@@ -754,10 +803,10 @@ app.post('/api/webhook/sheet-update', (req, res) => {
       db.logs.unshift({
         id: `LOG-${Date.now().toString().slice(-6)}`,
         timestamp: new Date().toLocaleString('id-ID'),
-        user: 'Google Sheet onEdit',
+        user: 'Google Sheet Webhook',
         action: 'REALTIME_UPDATE',
-        targetId: idpel,
-        details: `Perubahan langsung di Google Sheet untuk IDPEL: ${idpel} (${nama}) -> Status: ${recordStatus}, Petugas: ${matchedPetugas}`
+        targetId: idpel || nama,
+        details: `Perubahan langsung di Google Sheet untuk IDPEL: ${idpel || '-'} (${nama || 'Pelanggan'}) -> Status: ${recordStatus}, Petugas: ${matchedPetugas}`
       });
       db.logs = db.logs.slice(0, 100);
       saveDb(db);
@@ -767,10 +816,13 @@ app.post('/api/webhook/sheet-update', (req, res) => {
         saveSingleRecordToFirestoreServer(modifiedRec).catch(() => {});
       }
 
+      console.log(`[Webhook] Realtime edit applied for ${idpel || nama}: Status ${recordStatus}`);
+
       return res.json({
         success: true,
-        message: `Real-time update berhasil diterapkan untuk IDPEL ${idpel}`,
+        message: `Real-time update berhasil diterapkan untuk IDPEL ${idpel || nama}`,
         idPelanggan: idpel,
+        namaPelanggan: nama,
         status: recordStatus,
         lastUpdated: db.lastUpdated
       });
@@ -778,6 +830,7 @@ app.post('/api/webhook/sheet-update', (req, res) => {
 
     res.json({ success: true, message: 'Webhook payload received' });
   } catch (err: any) {
+    console.error('[Webhook] Error processing webhook:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

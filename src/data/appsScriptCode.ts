@@ -19,8 +19,8 @@ export const GOOGLE_APPS_SCRIPT_CODE = `/**
  * 4. 100% Proteksi Data: Tidak akan pernah menghapus data di Google Sheet Anda.
  */
 
-// URL Dashboard Webhook (Akan menerima pembaruan otomatis saat Sheet diedit)
-var DASHBOARD_WEBHOOK_URL = ""; 
+// URL Dashboard Webhook PLN Baguala (Akan menerima pembaruan otomatis setiap kali ada perubahan di Sheet)
+var DASHBOARD_WEBHOOK_URL = "https://ais-dev-2guhd2i7e54xdoldvylflo-7378754124.asia-east1.run.app/api/webhook/sheet-update"; 
 
 // Konfigurasi Header Standar 18 Kolom PLN ULP Baguala
 var STANDARD_HEADERS = [
@@ -47,22 +47,101 @@ var STANDARD_HEADERS = [
 var OFFICER_LIST = ['ABDUL', 'ANDRE', 'AUNUR', 'FEKI', 'FRANS', 'GABRIEL', 'HANS', 'HARDIN', 'ONYONG', 'PIYER', 'RAHMAT', 'RISKI', 'RIZKY', 'SALOMO', 'VAL', 'YONO', 'YUSRIL'];
 
 /**
+ * Helper untuk mengambil URL Webhook Dashboard
+ */
+function getWebhookUrl() {
+  if (DASHBOARD_WEBHOOK_URL && DASHBOARD_WEBHOOK_URL.trim().length > 10) {
+    return DASHBOARD_WEBHOOK_URL.trim();
+  }
+  var saved = PropertiesService.getScriptProperties().getProperty('DASHBOARD_WEBHOOK_URL');
+  return (saved && saved.trim().length > 10) ? saved.trim() : "https://ais-dev-2guhd2i7e54xdoldvylflo-7378754124.asia-east1.run.app/api/webhook/sheet-update";
+}
+
+/**
  * Menu otomatis saat Spreadsheet dibuka di browser
  */
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('⚡ PLN Baguala MBG')
-    .addItem('🔄 Sinkronkan Data ke Dashboard Web Sekarang', 'syncAllToDashboard')
+    .addItem('⚡ 1-Klik Aktifkan Realtime Auto-Sync (Trigger)', 'setupRealtimeTrigger')
+    .addItem('🔄 Sinkronkan Seluruh Data ke Dashboard Sekarang', 'syncAllToDashboard')
     .addSeparator()
+    .addItem('⚙️ Atur / Ganti URL Webhook Dashboard', 'configureWebhookUrl')
     .addItem('🛠️ Format Header Standar 18 Kolom', 'setupSheet')
     .addItem('📊 Rekap Status Penggantian Meter', 'showSummaryAlert')
     .addToUi();
 }
 
 /**
- * Pemicu Otomatis Saat Ada Perubahan Cell di Sheet (Real-Time Auto Sync)
+ * ⚡ 1-Klik Membuat Installable Trigger agar perubahan cell (onEdit) langsung terkirim ke Dashboard via internet!
  */
-function onEdit(e) {
+function setupRealtimeTrigger() {
+  var ui = SpreadsheetApp.getUi();
+  var webhook = getWebhookUrl();
+
+  // Hapus trigger lama jika ada agar bersih dan tidak duplikat
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    var fn = triggers[i].getHandlerFunction();
+    if (fn === 'installedOnEdit' || fn === 'onEdit') {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+
+  // Buat installable trigger baru untuk spreadsheet ini
+  ScriptApp.newTrigger('installedOnEdit')
+    .forSpreadsheet(SpreadsheetApp.getActive())
+    .onEdit()
+    .create();
+
+  // Simpan webhook ke property
+  PropertiesService.getScriptProperties().setProperty('DASHBOARD_WEBHOOK_URL', webhook);
+
+  // Jalankan sinkronisasi awal seluruh data
+  var allRecords = extractAllSheetRecords();
+  if (allRecords.length > 0) {
+    try {
+      var payload = {
+        action: 'full_sync',
+        timestamp: new Date().toISOString(),
+        records: allRecords
+      };
+      var options = {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      };
+      UrlFetchApp.fetch(webhook, options);
+    } catch (e) {
+      console.error('Initial sync error:', e);
+    }
+  }
+
+  ui.alert('✅ REAL-TIME AUTO-SYNC TELAH AKTIF!\\n\\n1. Trigger edit otomatis sudah terpasang.\\n2. Total ' + allRecords.length + ' data berhasil disinkronkan langsung ke Dashboard.\\n3. Mulai sekarang, setiap kali Anda mengubah status atau data di Google Sheet, Dashboard akan OTOMATIS langsung terubah secara realtime tanpa perlu klik tombol lagi!');
+}
+
+/**
+ * Konfigurasi URL Webhook Dashboard secara tersimpan
+ */
+function configureWebhookUrl() {
+  var ui = SpreadsheetApp.getUi();
+  var current = getWebhookUrl();
+  var prompt = ui.prompt('Pengaturan Webhook Dashboard', 'Masukkan URL Webhook Dashboard:\\n(Contoh: https://.../api/webhook/sheet-update)', ui.ButtonSet.OK_CANCEL);
+  if (prompt.getSelectedButton() === ui.Button.OK) {
+    var val = prompt.getResponseText().trim();
+    if (val.length > 10) {
+      PropertiesService.getScriptProperties().setProperty('DASHBOARD_WEBHOOK_URL', val);
+      DASHBOARD_WEBHOOK_URL = val;
+      ui.alert('✅ URL Webhook berhasil disimpan!\\n' + val);
+    }
+  }
+}
+
+/**
+ * Pemicu Installable Trigger Saat Ada Perubahan Cell di Sheet (Real-Time Auto Sync)
+ */
+function installedOnEdit(e) {
   try {
     if (!e || !e.range) return;
     var sheet = e.range.getSheet();
@@ -72,8 +151,8 @@ function onEdit(e) {
     // Abaikan perubahan pada baris header (baris 1)
     if (row <= 1) return;
     
-    // Jika Webhook URL telah diisi, kirim notifikasi update instan ke Dashboard
-    if (DASHBOARD_WEBHOOK_URL && DASHBOARD_WEBHOOK_URL.trim().length > 10) {
+    var webhook = getWebhookUrl();
+    if (webhook && webhook.length > 10) {
       var rowData = sheet.getRange(row, 1, 1, Math.max(sheet.getLastColumn(), 18)).getValues()[0];
       var payload = {
         event: 'cell_edit',
@@ -90,10 +169,21 @@ function onEdit(e) {
         muteHttpExceptions: true
       };
       
-      UrlFetchApp.fetch(DASHBOARD_WEBHOOK_URL, options);
+      UrlFetchApp.fetch(webhook, options);
     }
   } catch (err) {
-    // Silent catch on edit trigger
+    console.error('Error in installedOnEdit:', err);
+  }
+}
+
+/**
+ * Fallback Simple Trigger onEdit
+ */
+function onEdit(e) {
+  try {
+    installedOnEdit(e);
+  } catch (err) {
+    // Silent catch
   }
 }
 
