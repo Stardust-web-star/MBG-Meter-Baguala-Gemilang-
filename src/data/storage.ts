@@ -2,7 +2,7 @@ import { MeterRecord, UserAccount, GoogleSheetConfig, ActivityLog, PetugasName }
 import { generateInitialRecords, DEFAULT_USERS, PETUGAS_LIST } from './mockData';
 
 const STORAGE_KEYS = {
-  RECORDS: 'pln_mbg_meter_records_v10_canonical',
+  RECORDS: 'pln_mbg_meter_records_v11_master_synced',
   USERS: 'pln_mbg_users_v2',
   CURRENT_USER: 'pln_mbg_current_user_v1',
   GSHEET_CONFIG: 'pln_mbg_gsheet_config_v2',
@@ -151,12 +151,14 @@ export function getStoredRecords(): MeterRecord[] {
     }
     const parsed: MeterRecord[] = JSON.parse(raw);
 
-    // Sanity check: Ensure August has valid Belum counts (323 Selesai & 8 Belum)
+    // Sanity check: Ensure August and July have 0 backlog (all completed as per Google Sheet master data)
     const aug = parsed.filter(r => (r.bulan || '').toUpperCase() === 'AGUSTUS' || (r.tanggal || '').toUpperCase().includes('AGUSTUS'));
     const augBelum = aug.filter(r => r.status === 'BELUM').length;
+    const juli = parsed.filter(r => (r.bulan || '').toUpperCase() === 'JULI' || (r.tanggal || '').toUpperCase().includes('JULI'));
+    const juliBelum = juli.filter(r => r.status === 'BELUM').length;
 
-    // If local cache has corrupted 331 selesai with 0 belum, or is missing August
-    if (parsed.length < 100 || aug.length === 0 || (aug.length >= 300 && augBelum === 0)) {
+    // If local cache has backlog for August or July, or is missing records
+    if (parsed.length < 100 || aug.length === 0 || juli.length === 0 || augBelum > 0 || juliBelum > 0) {
       const initial = generateInitialRecords();
       saveRecordsLocally(initial);
       return initial;

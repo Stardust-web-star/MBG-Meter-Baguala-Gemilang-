@@ -83,8 +83,11 @@ function loadDb(): AppDatabase {
       // Check if records need auto-initialization or migration
       const augustRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'AGUSTUS' || (r.tanggal || '').toUpperCase().includes('AGUSTUS'));
       const augustBelum = augustRecords.filter(r => r.status === 'BELUM').length;
+      const julyRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'JULI' || (r.tanggal || '').toUpperCase().includes('JULI'));
+      const julyBelum = julyRecords.filter(r => r.status === 'BELUM').length;
 
-      if (records.length < 100 || augustRecords.length === 0 || (augustRecords.length >= 300 && augustBelum === 0)) {
+      // Both Juli and Agustus must be 100% Selesai (0 Belum) matching Google Sheet master data
+      if (records.length < 100 || augustRecords.length === 0 || julyRecords.length === 0 || augustBelum > 0 || julyBelum > 0) {
         const canonical = generateInitialRecords();
         records = canonical;
         parsed.records = canonical;
