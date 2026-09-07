@@ -73,7 +73,7 @@ function onOpen() {
 }
 
 /**
- * ⚡ 1-Klik Membuat Installable Trigger agar perubahan cell (onEdit) langsung terkirim ke Dashboard via internet!
+ * ⚡ 1-Klik Membuat Installable Trigger agar perubahan cell (onEdit) dan sinkronisasi berkala (setiap 1 menit) langsung terkirim ke Dashboard secara otomatis!
  */
 function setupRealtimeTrigger() {
   var ui = SpreadsheetApp.getUi();
@@ -83,15 +83,21 @@ function setupRealtimeTrigger() {
   var triggers = ScriptApp.getProjectTriggers();
   for (var i = 0; i < triggers.length; i++) {
     var fn = triggers[i].getHandlerFunction();
-    if (fn === 'installedOnEdit' || fn === 'onEdit') {
+    if (fn === 'installedOnEdit' || fn === 'onEdit' || fn === 'autoSyncBackground') {
       ScriptApp.deleteTrigger(triggers[i]);
     }
   }
 
-  // Buat installable trigger baru untuk spreadsheet ini
+  // 1. Buat installable onEdit trigger untuk perubahan cell seketika (realtime)
   ScriptApp.newTrigger('installedOnEdit')
     .forSpreadsheet(SpreadsheetApp.getActive())
     .onEdit()
+    .create();
+
+  // 2. Buat background time-based trigger setiap 1 menit agar data selalu tersinkron tanpa perlu buka aplikasi
+  ScriptApp.newTrigger('autoSyncBackground')
+    .timeBased()
+    .everyMinutes(1)
     .create();
 
   // Simpan webhook ke property
@@ -118,7 +124,37 @@ function setupRealtimeTrigger() {
     }
   }
 
-  ui.alert('✅ REAL-TIME AUTO-SYNC TELAH AKTIF!\\n\\n1. Trigger edit otomatis sudah terpasang.\\n2. Total ' + allRecords.length + ' data berhasil disinkronkan langsung ke Dashboard.\\n3. Mulai sekarang, setiap kali Anda mengubah status atau data di Google Sheet, Dashboard akan OTOMATIS langsung terubah secara realtime tanpa perlu klik tombol lagi!');
+  ui.alert('✅ REAL-TIME AUTO-SYNC AKTIF PENUH!\\n\\n1. Trigger Edit Langsung (onEdit): Terpasang.\\n2. Trigger Otomatis Berkala (Tiap 1 Menit): Terpasang.\\n3. Total ' + allRecords.length + ' data berhasil disinkronkan langsung ke Dashboard.\\n\\nMulai sekarang, seluruh perubahan status, nomor meter baru, dan data di Google Sheet akan OTOMATIS tersinkron ke Dashboard secara realtime tanpa harus mengklik tombol apapun!');
+}
+
+/**
+ * Pemicu Berkala Otomatis Tiap 1 Menit (Background Auto-Sync)
+ */
+function autoSyncBackground() {
+  try {
+    var webhook = getWebhookUrl();
+    if (!webhook || webhook.length <= 10) return;
+    
+    var allRecords = extractAllSheetRecords();
+    if (allRecords.length === 0) return;
+
+    var payload = {
+      action: 'full_sync',
+      timestamp: new Date().toISOString(),
+      records: allRecords
+    };
+    
+    var options = {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+    
+    UrlFetchApp.fetch(webhook, options);
+  } catch (err) {
+    console.error('Error in autoSyncBackground:', err);
+  }
 }
 
 /**

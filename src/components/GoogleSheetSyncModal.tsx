@@ -206,18 +206,18 @@ export function GoogleSheetSyncModal({
     }
 
     try {
-      const parsed = parseCSVToRecords(csvInput);
+      const parsed = parseCSVToRecords(csvInput, sheetTab);
       if (parsed.length === 0) {
         throw new Error('Format teks tidak valid atau tidak memiliki baris data.');
       }
 
-      const merged = safeMergeRecords(parsed, records);
+      const merged = safeMergeRecords(parsed, records, sheetTab);
       saveRecords(merged);
       updateRecords(merged);
       setCsvInput('');
       setSyncStatusMsg({
         type: 'success',
-        text: `Berhasil mengimpor ${parsed.length} data ganti meter ke dalam database sistem!`
+        text: `Berhasil mengimpor ${parsed.length} data ganti meter untuk periode ${sheetTab} ke dalam database sistem!`
       });
     } catch (e: any) {
       setSyncStatusMsg({ type: 'error', text: e.message || 'Gagal memproses data CSV.' });

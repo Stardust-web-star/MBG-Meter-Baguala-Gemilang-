@@ -29,20 +29,39 @@ export const INDONESIAN_MONTHS = [
  * Normalizes any tab name, date string, or month identifier into a clean standard Indonesian month string (JULI, AGUSTUS, SEPTEMBER, etc.)
  */
 export function normalizeMonthName(monthStr?: string, dateStr?: string): string {
-  const str = `${monthStr || ''} ${dateStr || ''}`.toUpperCase().trim();
-  if (str.includes('JUL')) return 'JULI';
-  if (str.includes('AGU')) return 'AGUSTUS';
-  if (str.includes('SEP')) return 'SEPTEMBER';
-  if (str.includes('OKT')) return 'OKTOBER';
-  if (str.includes('NOV')) return 'NOVEMBER';
-  if (str.includes('DES')) return 'DESEMBER';
-  if (str.includes('JAN')) return 'JANUARI';
-  if (str.includes('FEB')) return 'FEBRUARI';
-  if (str.includes('MAR')) return 'MARET';
-  if (str.includes('APR')) return 'APRIL';
-  if (str.includes('MEI')) return 'MEI';
-  if (str.includes('JUN')) return 'JUNI';
-  return (monthStr || 'SEPTEMBER').toUpperCase().trim();
+  const m = String(monthStr || '').toUpperCase().trim();
+  if (m) {
+    if (m.includes('SEP') || m.includes('SEPT')) return 'SEPTEMBER';
+    if (m.includes('AGU') || m.includes('AUG')) return 'AGUSTUS';
+    if (m.includes('JUL')) return 'JULI';
+    if (m.includes('JUN')) return 'JUNI';
+    if (m.includes('MEI') || m.includes('MAY')) return 'MEI';
+    if (m.includes('APR')) return 'APRIL';
+    if (m.includes('MAR')) return 'MARET';
+    if (m.includes('FEB')) return 'FEBRUARI';
+    if (m.includes('JAN')) return 'JANUARI';
+    if (m.includes('OKT') || m.includes('OCT')) return 'OKTOBER';
+    if (m.includes('NOV')) return 'NOVEMBER';
+    if (m.includes('DES') || m.includes('DEC')) return 'DESEMBER';
+  }
+
+  const d = String(dateStr || '').toUpperCase().trim();
+  if (d) {
+    if (d.includes('SEP') || d.includes('SEPT') || d.includes('/09/') || d.includes('-09-') || d.includes('.09.') || d.endsWith('/09') || d.includes(' 9 ') || d.includes('/9/')) return 'SEPTEMBER';
+    if (d.includes('AGU') || d.includes('AUG') || d.includes('/08/') || d.includes('-08-') || d.includes('.08.') || d.endsWith('/08') || d.includes(' 8 ') || d.includes('/8/')) return 'AGUSTUS';
+    if (d.includes('JUL') || d.includes('/07/') || d.includes('-07-') || d.includes('.07.') || d.endsWith('/07') || d.includes(' 7 ') || d.includes('/7/')) return 'JULI';
+    if (d.includes('JUN') || d.includes('/06/') || d.includes('-06-') || d.includes('.06.')) return 'JUNI';
+    if (d.includes('MEI') || d.includes('MAY') || d.includes('/05/') || d.includes('-05-')) return 'MEI';
+    if (d.includes('APR') || d.includes('/04/') || d.includes('-04-')) return 'APRIL';
+    if (d.includes('MAR') || d.includes('/03/') || d.includes('-03-')) return 'MARET';
+    if (d.includes('FEB') || d.includes('/02/') || d.includes('-02-')) return 'FEBRUARI';
+    if (d.includes('JAN') || d.includes('/01/') || d.includes('-01-')) return 'JANUARI';
+    if (d.includes('OKT') || d.includes('OCT') || d.includes('/10/') || d.includes('-10-')) return 'OKTOBER';
+    if (d.includes('NOV') || d.includes('/11/') || d.includes('-11-')) return 'NOVEMBER';
+    if (d.includes('DES') || d.includes('DEC') || d.includes('/12/') || d.includes('-12-')) return 'DESEMBER';
+  }
+
+  return (m || 'SEPTEMBER').toUpperCase().trim();
 }
 
 export function getRealCurrentMonthInfo(): { id: string; name: string; year: string; monthIndex: number } {

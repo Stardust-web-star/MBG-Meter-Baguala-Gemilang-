@@ -603,7 +603,8 @@ export function exportRecordsToCSV(records: MeterRecord[]): string {
   return [headers.join(','), ...rows.map(row => row.join(','))].join('\r\n');
 }
 
-export function parseCSVToRecords(csvText: string): MeterRecord[] {
+export function parseCSVToRecords(csvText: string, targetMonth: string = 'SEPTEMBER'): MeterRecord[] {
+  const canonicalMonth = normalizeMonthName(targetMonth);
   const lines = csvText.split(/\r?\n/).filter(line => line.trim().length > 0);
   if (lines.length <= 1) return [];
 
@@ -700,7 +701,7 @@ export function parseCSVToRecords(csvText: string): MeterRecord[] {
 
     records.push({
       id: `IMP-${Date.now().toString().slice(-4)}-${i}`,
-      tanggal: cleanCols[idxTanggal] || 'SENIN 3 AGUSTUS 2026',
+      tanggal: cleanCols[idxTanggal] || `SENIN 1 ${canonicalMonth} 2026`,
       idPelanggan: idPel,
       namaPelanggan: nama,
       tarif,
@@ -717,7 +718,8 @@ export function parseCSVToRecords(csvText: string): MeterRecord[] {
       gantiMeter,
       petugas: matchedPetugas,
       status,
-      alamat: cleanCols[idxAlamat] || 'Baguala, Ambon'
+      alamat: cleanCols[idxAlamat] || 'Baguala, Ambon',
+      bulan: canonicalMonth
     });
   }
 
@@ -728,7 +730,7 @@ export function parseCSVToRecords(csvText: string): MeterRecord[] {
  * Smart safe merge: Menggabungkan data dari Google Sheet dan data lokal
  */
 export function safeMergeRecords(sheetRecords: MeterRecord[], localRecords: MeterRecord[], fallbackMonth?: string): MeterRecord[] {
-  const canonicalTarget = normalizeMonthName(fallbackMonth || 'AGUSTUS');
+  const canonicalTarget = normalizeMonthName(fallbackMonth || 'SEPTEMBER');
 
   // 1. Bersihkan baris header atau baris kosong yang masuk dari Google Sheet
   const cleanSheetRecords = sheetRecords.filter(r => {
@@ -746,10 +748,10 @@ export function safeMergeRecords(sheetRecords: MeterRecord[], localRecords: Mete
   // 2. Normalisasi bulan untuk record yang baru ditarik dari tab target
   const normalizedSheetRecords = cleanSheetRecords.map(r => ({
     ...r,
-    bulan: normalizeMonthName(r.bulan || canonicalTarget, r.tanggal)
+    bulan: canonicalTarget
   }));
 
-  // 3. Pisahkan record lokal untuk bulan lain (AGUSTUS, SEPTEMBER, dsb.) agar tidak hilang
+  // 3. Pisahkan record lokal untuk bulan lain (AGUSTUS, JULI, dsb.) agar tidak hilang
   const otherMonthsLocalRecords = localRecords.filter(r => {
     const rMonthNorm = normalizeMonthName(r.bulan, r.tanggal);
     return rMonthNorm !== canonicalTarget;
