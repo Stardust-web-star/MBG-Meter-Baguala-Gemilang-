@@ -25,6 +25,26 @@ export const INDONESIAN_MONTHS = [
 /**
  * Gets real-time current month name (e.g., 'SEPTEMBER') and year (e.g., '2026')
  */
+/**
+ * Normalizes any tab name, date string, or month identifier into a clean standard Indonesian month string (JULI, AGUSTUS, SEPTEMBER, etc.)
+ */
+export function normalizeMonthName(monthStr?: string, dateStr?: string): string {
+  const str = `${monthStr || ''} ${dateStr || ''}`.toUpperCase().trim();
+  if (str.includes('JUL')) return 'JULI';
+  if (str.includes('AGU')) return 'AGUSTUS';
+  if (str.includes('SEP')) return 'SEPTEMBER';
+  if (str.includes('OKT')) return 'OKTOBER';
+  if (str.includes('NOV')) return 'NOVEMBER';
+  if (str.includes('DES')) return 'DESEMBER';
+  if (str.includes('JAN')) return 'JANUARI';
+  if (str.includes('FEB')) return 'FEBRUARI';
+  if (str.includes('MAR')) return 'MARET';
+  if (str.includes('APR')) return 'APRIL';
+  if (str.includes('MEI')) return 'MEI';
+  if (str.includes('JUN')) return 'JUNI';
+  return (monthStr || 'SEPTEMBER').toUpperCase().trim();
+}
+
 export function getRealCurrentMonthInfo(): { id: string; name: string; year: string; monthIndex: number } {
   const now = new Date();
   const monthIndex = now.getMonth(); // 0-indexed (0 = JANUARI, 8 = SEPTEMBER)

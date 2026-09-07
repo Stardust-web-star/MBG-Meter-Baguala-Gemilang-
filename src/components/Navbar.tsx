@@ -280,32 +280,34 @@ export function Navbar({
           </span>
         </motion.button>
 
-        {/* Google Sheet Direct Auto-Sync Button (Floating Pill) */}
-        <motion.button
-          id="btn-open-gsheet-modal"
-          type="button"
-          onClick={() => {
-            if (onTriggerManualSync) {
-              onTriggerManualSync();
-            } else {
-              onOpenGSheetModal();
-            }
-          }}
-          whileHover={{ scale: 1.04, y: -1 }}
-          whileTap={{ scale: 0.96 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-          className="flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-950/40 hover:from-emerald-100 hover:to-teal-100 dark:hover:from-emerald-900/50 dark:hover:to-teal-900/40 border border-emerald-200/90 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer group"
-          title="Klik untuk Sinkronisasi Langsung Data Google Sheet"
-        >
-          <FileSpreadsheet className={`w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform shrink-0 ${isSyncingSheet ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline text-[11px] font-semibold text-emerald-900 dark:text-emerald-200">
-            {isSyncingSheet ? 'Memuat Data...' : 'Sheet:'}
-          </span>
-          <span className="bg-emerald-600 dark:bg-emerald-500 text-white text-[9px] font-mono font-black px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
-            <span className={`w-1.5 h-1.5 rounded-full bg-emerald-200 inline-block ${isSyncingSheet ? 'animate-spin' : 'animate-ping'}`}></span>
-            {isSyncingSheet ? 'SYNC' : 'AUTO-LIVE'}
-          </span>
-        </motion.button>
+        {/* Google Sheet Direct Auto-Sync Button (1-Click Instant Background Sync) */}
+        <div className="flex items-center gap-1">
+          <motion.button
+            id="btn-open-gsheet-modal"
+            type="button"
+            onClick={() => {
+              if (onTriggerManualSync) {
+                onTriggerManualSync();
+              } else {
+                onOpenGSheetModal();
+              }
+            }}
+            whileHover={{ scale: 1.04, y: -1 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+            className="flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-950/40 hover:from-emerald-100 hover:to-teal-100 dark:hover:from-emerald-900/50 dark:hover:to-teal-900/40 border border-emerald-200/90 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer group"
+            title="1-Klik Sinkronisasi Langsung Latar Belakang (Tanpa Pop-up Modal)"
+          >
+            <FileSpreadsheet className={`w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform shrink-0 ${isSyncingSheet ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline text-[11px] font-semibold text-emerald-900 dark:text-emerald-200">
+              {isSyncingSheet ? 'Menyinkronkan...' : 'Sheet:'}
+            </span>
+            <span className="bg-emerald-600 dark:bg-emerald-500 text-white text-[9px] font-mono font-black px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+              <span className={`w-1.5 h-1.5 rounded-full bg-emerald-200 inline-block ${isSyncingSheet ? 'animate-spin' : 'animate-ping'}`}></span>
+              {isSyncingSheet ? 'SYNC' : 'AUTO-LIVE'}
+            </span>
+          </motion.button>
+        </div>
 
         {/* User Info & Online Status Floating Island */}
         <div className="relative" ref={userDropdownRef}>

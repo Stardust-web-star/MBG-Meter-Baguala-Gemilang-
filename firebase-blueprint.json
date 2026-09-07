@@ -1,0 +1,60 @@
+{
+  "entities": {
+    "MeterRecord": {
+      "title": "Meter Record",
+      "description": "Data realisasi penggantian KWH meter pelanggan ULP Baguala",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "bulan": { "type": "string" },
+        "idPelanggan": { "type": "string" },
+        "namaPelanggan": { "type": "string" },
+        "tarif": { "type": "string" },
+        "daya": { "type": "number" },
+        "noMeterLama": { "type": "string" },
+        "noMeterBaru": { "type": "string" },
+        "noAgenda": { "type": "string" },
+        "noSnMaterialKwh": { "type": "string" },
+        "noSnMaterialMcb": { "type": "string" },
+        "kabelTw": { "type": "string" },
+        "segel": { "type": "string" },
+        "standBongkar": { "type": "string" },
+        "jenis": { "type": "string" },
+        "gantiMeter": { "type": "string" },
+        "petugas": { "type": "string" },
+        "status": { "type": "string" },
+        "alamat": { "type": "string" },
+        "gardu": { "type": "string" },
+        "tipeFasa": { "type": "string" },
+        "keterangan": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "idPelanggan", "namaPelanggan", "petugas", "status"]
+    },
+    "GoogleSheetConfig": {
+      "title": "Google Sheet Config",
+      "description": "Konfigurasi integrasi Google Sheet",
+      "type": "object",
+      "properties": {
+        "sheetUrl": { "type": "string" },
+        "sheetId": { "type": "string" },
+        "webAppUrl": { "type": "string" },
+        "selectedSheetTab": { "type": "string" },
+        "autoSync": { "type": "boolean" },
+        "lastSyncTime": { "type": "string" },
+        "syncStatus": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/meter_records/{recordId}": {
+      "schema": "MeterRecord",
+      "description": "Koleksi data penggantian KWH meter pelanggan"
+    },
+    "/system_config/gsheet": {
+      "schema": "GoogleSheetConfig",
+      "description": "Konfigurasi Google Sheet"
+    }
+  }
+}

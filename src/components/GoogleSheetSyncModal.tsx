@@ -183,7 +183,7 @@ export function GoogleSheetSyncModal({
     setSyncStatusMsg({
       type: 'success',
       text: '✅ Data Berhasil Dimuat Ulang Sesuai Master Data!',
-      details: 'Data telah disinkronkan ke versi master data Google Sheet (Agustus: 331 Selesai & 0 Belum / 100%, Juli: 346 Selesai & 0 Belum / 100%, September: 198 Selesai & 24 Belum). Perubahan otomatis terupdate di semua laptop.'
+      details: 'Data telah disinkronkan ke versi master data Google Sheet per bulannya (Agustus, Juli, dan September). Perubahan otomatis terupdate di semua laptop.'
     });
   };
 
@@ -554,7 +554,7 @@ export function GoogleSheetSyncModal({
                     type="button"
                     onClick={handleResetToCanonical}
                     className="py-2.5 px-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
-                    title="Muat ulang dan sinkronkan data (Agustus: 331 Selesai / 0 Belum)"
+                    title="Muat ulang dan sinkronkan master data per bulan"
                   >
                     <Sparkles className="w-3.5 h-3.5 text-amber-200" />
                     <span>🔄 Refresh Master</span>

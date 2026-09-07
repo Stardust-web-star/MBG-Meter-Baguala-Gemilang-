@@ -1,5 +1,7 @@
 import { MeterRecord, UserAccount, GoogleSheetConfig, ActivityLog, PetugasName } from '../types';
 import { generateInitialRecords, DEFAULT_USERS, PETUGAS_LIST } from './mockData';
+import { normalizeMonthName } from '../utils/monthUtils';
+import { syncRecordsToFirestore, saveSingleRecordToFirestore } from '../lib/firebase';
 
 const STORAGE_KEYS = {
   RECORDS: 'pln_mbg_meter_records_v11_master_synced',
@@ -151,14 +153,12 @@ export function getStoredRecords(): MeterRecord[] {
     }
     const parsed: MeterRecord[] = JSON.parse(raw);
 
-    // Sanity check: Ensure August and July have 0 backlog (all completed as per Google Sheet master data)
+    // Sanity check: Ensure records exist for August and July
     const aug = parsed.filter(r => (r.bulan || '').toUpperCase() === 'AGUSTUS' || (r.tanggal || '').toUpperCase().includes('AGUSTUS'));
-    const augBelum = aug.filter(r => r.status === 'BELUM').length;
     const juli = parsed.filter(r => (r.bulan || '').toUpperCase() === 'JULI' || (r.tanggal || '').toUpperCase().includes('JULI'));
-    const juliBelum = juli.filter(r => r.status === 'BELUM').length;
 
-    // If local cache has backlog for August or July, or is missing records
-    if (parsed.length < 100 || aug.length === 0 || juli.length === 0 || augBelum > 0 || juliBelum > 0) {
+    // If local cache is missing records
+    if (parsed.length < 100 || aug.length === 0 || juli.length === 0) {
       const initial = generateInitialRecords();
       saveRecordsLocally(initial);
       return initial;
@@ -173,6 +173,7 @@ export function getStoredRecords(): MeterRecord[] {
 
 export function saveRecords(records: MeterRecord[]): void {
   saveRecordsLocally(records);
+  syncRecordsToFirestore(records).catch(() => {});
   // Persist to centralized server so other laptops receive it
   fetch('/api/records', {
     method: 'POST',
@@ -192,6 +193,7 @@ export function addMeterRecord(record: Omit<MeterRecord, 'id'>, currentUser?: st
   };
   const updated = [fullRecord, ...records];
   saveRecordsLocally(updated);
+  saveSingleRecordToFirestore(fullRecord).catch(() => {});
   logActivity(currentUser || 'Admin', 'INPUT_DATA', fullRecord.id, `Input ganti meter IDPEL: ${fullRecord.idPelanggan} (${fullRecord.namaPelanggan})`);
   
   // Sync to server
@@ -215,6 +217,7 @@ export function updateMeterRecord(id: string, updates: Partial<MeterRecord>, cur
     updatedAt: new Date().toISOString()
   };
   saveRecordsLocally(records);
+  saveSingleRecordToFirestore(records[index]).catch(() => {});
   logActivity(currentUser || 'Admin', 'UPDATE_DATA', id, `Update data IDPEL: ${records[index].idPelanggan}`);
 
   // Sync to server
@@ -661,7 +664,18 @@ export function parseCSVToRecords(csvText: string): MeterRecord[] {
     const jenis = rawJenis.includes('PASKA') ? 'PASKA BAYAR' : 'PRA BAYAR';
     const rawGanti = (cleanCols[idxGanti] || '').toUpperCase();
     const gantiMeter = rawGanti.includes('GANGGUAN') ? 'METER GANGGUAN' : 'METER TUA';
-    const status = (cleanCols[idxStatus] || '').toUpperCase().includes('BELUM') ? 'BELUM' : 'SELESAI';
+    const rawStatusStr = (cleanCols[idxStatus] || '').toUpperCase().trim();
+    const rawMeterBaru = (cleanCols[idxNoBaru] || '').trim();
+    const hasMeterBaru = rawMeterBaru !== '' && rawMeterBaru !== '-' && rawMeterBaru.length >= 4;
+
+    let status: 'SELESAI' | 'BELUM' = 'BELUM';
+    if (rawStatusStr.includes('BELUM') || rawStatusStr.includes('BLM') || rawStatusStr.includes('PENDING') || rawStatusStr.includes('PROSES') || rawStatusStr === 'NO' || rawStatusStr === '0') {
+      status = 'BELUM';
+    } else if (rawStatusStr.includes('SELESAI') || rawStatusStr.includes('TERPASANG') || rawStatusStr.includes('SUDAH') || rawStatusStr.includes('DONE') || rawStatusStr === 'OK' || rawStatusStr === 'YES' || rawStatusStr === '1' || hasMeterBaru) {
+      status = 'SELESAI';
+    } else {
+      status = hasMeterBaru ? 'SELESAI' : 'BELUM';
+    }
 
     records.push({
       id: `IMP-${Date.now().toString().slice(-4)}-${i}`,
@@ -693,7 +707,7 @@ export function parseCSVToRecords(csvText: string): MeterRecord[] {
  * Smart safe merge: Menggabungkan data dari Google Sheet dan data lokal
  */
 export function safeMergeRecords(sheetRecords: MeterRecord[], localRecords: MeterRecord[], fallbackMonth?: string): MeterRecord[] {
-  const targetMonth = (fallbackMonth || 'AGUSTUS').toUpperCase();
+  const canonicalTarget = normalizeMonthName(fallbackMonth || 'AGUSTUS');
 
   // 1. Bersihkan baris header atau baris kosong yang masuk dari Google Sheet
   const cleanSheetRecords = sheetRecords.filter(r => {
@@ -711,18 +725,16 @@ export function safeMergeRecords(sheetRecords: MeterRecord[], localRecords: Mete
   // 2. Normalisasi bulan untuk record yang baru ditarik dari tab target
   const normalizedSheetRecords = cleanSheetRecords.map(r => ({
     ...r,
-    bulan: targetMonth
+    bulan: normalizeMonthName(r.bulan || canonicalTarget, r.tanggal)
   }));
 
   // 3. Pisahkan record lokal untuk bulan lain (AGUSTUS, SEPTEMBER, dsb.) agar tidak hilang
   const otherMonthsLocalRecords = localRecords.filter(r => {
-    const m = (r.bulan || '').toUpperCase();
-    const dateUpper = (r.tanggal || '').toUpperCase();
-    const isThisMonth = (m === targetMonth) || (!m && dateUpper.includes(targetMonth));
-    return !isThisMonth;
+    const rMonthNorm = normalizeMonthName(r.bulan, r.tanggal);
+    return rMonthNorm !== canonicalTarget;
   });
 
-  // 4. Jika sheetRecords memiliki data riil dari Google Sheet untuk targetMonth,
+  // 4. Jika sheetRecords memiliki data riil dari Google Sheet untuk canonicalTarget,
   // gunakan data sheet tersebut untuk bulan target, ditambah input lokal manual oleh user (jika ada)
   let mergedForTargetMonth: MeterRecord[] = [];
   if (normalizedSheetRecords.length > 0) {
@@ -731,10 +743,8 @@ export function safeMergeRecords(sheetRecords: MeterRecord[], localRecords: Mete
 
     // Pertahankan input manual baru dari user (yang dibuat via form input dan bukan mock)
     const userCreatedLocal = localRecords.filter(r => {
-      const m = (r.bulan || '').toUpperCase();
-      const dateUpper = (r.tanggal || '').toUpperCase();
-      const isThisMonth = (m === targetMonth) || (!m && dateUpper.includes(targetMonth));
-      if (!isThisMonth) return false;
+      const rMonthNorm = normalizeMonthName(r.bulan, r.tanggal);
+      if (rMonthNorm !== canonicalTarget) return false;
 
       const isSeedMock = r.id.startsWith('GM-2026') || r.id.startsWith('IMP-');
       if (isSeedMock) return false;
@@ -749,9 +759,7 @@ export function safeMergeRecords(sheetRecords: MeterRecord[], localRecords: Mete
   } else {
     // Jika data dari sheet kosong/gagal, pertahankan data lokal yang ada
     mergedForTargetMonth = localRecords.filter(r => {
-      const m = (r.bulan || '').toUpperCase();
-      const dateUpper = (r.tanggal || '').toUpperCase();
-      return (m === targetMonth) || (!m && dateUpper.includes(targetMonth));
+      return normalizeMonthName(r.bulan, r.tanggal) === canonicalTarget;
     });
   }
 
@@ -759,13 +767,7 @@ export function safeMergeRecords(sheetRecords: MeterRecord[], localRecords: Mete
 
   // 5. Final normalisasi bulan dan petugas
   return allMerged.map((r, idx) => {
-    const dateUpper = (r.tanggal || '').toUpperCase();
-    let month = r.bulan || targetMonth;
-    if (!r.bulan) {
-      if (dateUpper.includes('JULI')) month = 'JULI';
-      else if (dateUpper.includes('AGUSTUS') || dateUpper.includes('AGU')) month = 'AGUSTUS';
-      else if (dateUpper.includes('SEPTEMBER') || dateUpper.includes('SEP')) month = 'SEPTEMBER';
-    }
+    const month = normalizeMonthName(r.bulan, r.tanggal);
 
     let normPetugas = (r.petugas || '').toUpperCase().trim();
     const matched = PETUGAS_LIST.find(p => normPetugas.includes(p) || p.includes(normPetugas));
@@ -775,8 +777,8 @@ export function safeMergeRecords(sheetRecords: MeterRecord[], localRecords: Mete
       normPetugas = PETUGAS_LIST[idx % PETUGAS_LIST.length];
     }
 
-    return { 
-      ...r, 
+    return {
+      ...r,
       bulan: month,
       petugas: normPetugas as PetugasName
     };

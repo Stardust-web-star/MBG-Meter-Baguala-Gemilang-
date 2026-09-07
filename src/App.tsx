@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Zap, Database } from 'lucide-react';
-import { getRealCurrentMonthInfo } from './utils/monthUtils';
+import { getRealCurrentMonthInfo, normalizeMonthName } from './utils/monthUtils';
 import { 
   MenuId, 
   MeterRecord, 
@@ -30,6 +30,7 @@ import {
   syncAddRecordToSheetBackground,
   syncUpdateRecordToSheetBackground
 } from './data/storage';
+import { subscribeToRealtimeRecords, testFirestoreConnection } from './lib/firebase';
 
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
@@ -104,6 +105,23 @@ export default function App() {
       setIsLoginModalOpen(true);
     }
 
+    // Initialize Firebase Firestore connection test & real-time onSnapshot listener
+    testFirestoreConnection();
+    const unsubscribeFirestore = subscribeToRealtimeRecords(
+      (fsRecords) => {
+        if (fsRecords && fsRecords.length > 0) {
+          setRecords(prev => {
+            const map = new Map<string, MeterRecord>();
+            prev.forEach(r => { if (r.id) map.set(String(r.id), r); });
+            fsRecords.forEach(r => { if (r.id) map.set(String(r.id), r); });
+            const merged = Array.from(map.values());
+            return merged;
+          });
+        }
+      },
+      (err) => console.warn('[Firestore Realtime Note]:', err)
+    );
+
     // 1. Instantly pull latest state from centralized server (if other laptop made changes)
     fetchSharedServerState().then(shared => {
       if (shared && shared.records && shared.records.length > 0) {
@@ -126,7 +144,7 @@ export default function App() {
       });
     });
 
-    // 4. Periodic Cross-Laptop Background Polling every 10 seconds
+    // 4. Periodic Cross-Laptop & Google Sheet Background Polling (every 3s for real-time auto-sync)
     const intervalId = setInterval(async () => {
       const shared = await fetchSharedServerState();
       if (shared && shared.records && shared.records.length > 0) {
@@ -134,7 +152,15 @@ export default function App() {
         if (shared.config) setSheetConfig(shared.config);
         if (shared.users) setUsers(shared.users);
       }
-    }, 10000);
+      // Continuous background Google Sheet refresh
+      const cfg = getGSheetConfig();
+      const currentTab = cfg.selectedSheetTab || 'AGUSTUS';
+      fetchAndSyncFromGoogleSheet(currentTab, getStoredRecords()).then(res => {
+        if (res.success && res.records.length > 0) {
+          setRecords(res.records);
+        }
+      });
+    }, 3000);
 
     // 5. Window Focus / Tab Re-open Sync (Immediate Refresh on focus)
     const handleFocusSync = async () => {
@@ -145,6 +171,8 @@ export default function App() {
         setRecords(shared.records);
         if (shared.config) setSheetConfig(shared.config);
       }
+      const cfg = getGSheetConfig();
+      syncMonthWithSheet(cfg.selectedSheetTab || 'AGUSTUS', storedRecs);
     };
     window.addEventListener('focus', handleFocusSync);
 
@@ -175,6 +203,7 @@ export default function App() {
       window.removeEventListener('focus', handleFocusSync);
       window.removeEventListener('storage', handleStorageChange);
       unsubscribeBus();
+      unsubscribeFirestore();
     };
   }, []);
 
@@ -258,15 +287,11 @@ export default function App() {
 
   // Filter records strictly per selected month (JULI, AGUSTUS, SEPTEMBER)
   const filteredMonthRecords = useMemo(() => {
+    if (!selectedMonth) return records;
+    const targetMonthNorm = normalizeMonthName(selectedMonth);
     return records.filter(r => {
-      if (!selectedMonth) return true;
-      const m = (r.bulan || '').toUpperCase();
-      const dateStr = (r.tanggal || '').toUpperCase();
-      const currentM = selectedMonth.toUpperCase();
-      if (m) {
-        return m === currentM;
-      }
-      return dateStr.includes(currentM);
+      const recordMonthNorm = normalizeMonthName(r.bulan, r.tanggal);
+      return recordMonthNorm === targetMonthNorm;
     });
   }, [records, selectedMonth]);
 

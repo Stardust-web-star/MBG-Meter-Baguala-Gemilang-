@@ -49,14 +49,14 @@ export const DEFAULT_USERS: UserAccount[] = [
   }
 ];
 
-// Target counts per officer for August 2026 matching Google Sheet "MON AGU" (100% Selesai, 0 Belum):
+// Target counts per officer for August 2026 matching Google Sheet "MON AGU":
 const AUGUST_OFFICER_STATS: Record<PetugasName, { belum: number; selesai: number }> = {
   'ABDUL': { belum: 0, selesai: 1 },
   'ANDRE': { belum: 0, selesai: 11 },
   'AUNUR': { belum: 0, selesai: 7 },
   'FEKI': { belum: 0, selesai: 32 },
   'FRANS': { belum: 0, selesai: 1 },
-  'GABRIEL': { belum: 0, selesai: 45 },
+  'GABRIEL': { belum: 2, selesai: 45 },
   'HANS': { belum: 0, selesai: 19 },
   'HARDIN': { belum: 0, selesai: 7 },
   'ONYONG': { belum: 0, selesai: 45 },
@@ -67,7 +67,7 @@ const AUGUST_OFFICER_STATS: Record<PetugasName, { belum: number; selesai: number
   'SALOMO': { belum: 0, selesai: 8 },
   'VAL': { belum: 0, selesai: 19 },
   'YONO': { belum: 0, selesai: 13 },
-  'YUSRIL': { belum: 0, selesai: 51 },
+  'YUSRIL': { belum: 1, selesai: 51 },
 };
 
 // Target counts per officer for July 2026 matching Google Sheet "JULI" (100% Selesai, 0 Belum):
@@ -91,29 +91,71 @@ const JULY_OFFICER_STATS: Record<PetugasName, { belum: number; selesai: number }
   'YUSRIL': { belum: 0, selesai: 46 },
 };
 
-// Target counts per officer for September 2026:
+// Target counts per officer for September 2026 (103 total ganti meter):
 const SEPTEMBER_OFFICER_STATS: Record<PetugasName, { belum: number; selesai: number }> = {
-  'ABDUL': { belum: 1, selesai: 8 },
-  'ANDRE': { belum: 2, selesai: 9 },
-  'AUNUR': { belum: 1, selesai: 6 },
-  'FEKI': { belum: 2, selesai: 18 },
-  'FRANS': { belum: 1, selesai: 5 },
-  'GABRIEL': { belum: 3, selesai: 22 },
-  'HANS': { belum: 1, selesai: 10 },
-  'HARDIN': { belum: 0, selesai: 5 },
-  'ONYONG': { belum: 2, selesai: 25 },
-  'PIYER': { belum: 1, selesai: 14 },
-  'RAHMAT': { belum: 2, selesai: 12 },
-  'RISKI': { belum: 1, selesai: 9 },
-  'RIZKY': { belum: 1, selesai: 4 },
-  'SALOMO': { belum: 1, selesai: 6 },
-  'VAL': { belum: 1, selesai: 11 },
-  'YONO': { belum: 1, selesai: 7 },
-  'YUSRIL': { belum: 3, selesai: 27 },
+  'ABDUL': { belum: 1, selesai: 4 },
+  'ANDRE': { belum: 1, selesai: 5 },
+  'AUNUR': { belum: 1, selesai: 3 },
+  'FEKI': { belum: 1, selesai: 9 },
+  'FRANS': { belum: 0, selesai: 2 },
+  'GABRIEL': { belum: 2, selesai: 11 },
+  'HANS': { belum: 1, selesai: 5 },
+  'HARDIN': { belum: 0, selesai: 2 },
+  'ONYONG': { belum: 2, selesai: 12 },
+  'PIYER': { belum: 1, selesai: 6 },
+  'RAHMAT': { belum: 1, selesai: 5 },
+  'RISKI': { belum: 1, selesai: 4 },
+  'RIZKY': { belum: 0, selesai: 2 },
+  'SALOMO': { belum: 1, selesai: 3 },
+  'VAL': { belum: 1, selesai: 4 },
+  'YONO': { belum: 1, selesai: 3 },
+  'YUSRIL': { belum: 0, selesai: 8 },
 };
 
 // Seed realistic authentic records matching the screenshot
 const REAL_SEED_ROWS: Partial<MeterRecord>[] = [
+  {
+    tanggal: 'SENIN 3 AGUSTUS 2026',
+    idPelanggan: '411120015783',
+    namaPelanggan: 'EDGAR W. M. TAURAN',
+    tarif: 'R2T',
+    daya: 4400,
+    noMeterLama: '32028284100',
+    noMeterBaru: '86297051996',
+    noAgenda: '411300562608181023',
+    noSnMaterialKwh: 'PLN0219000022402686297051996',
+    noSnMaterialMcb: '-',
+    kabelTw: '-',
+    segel: '-',
+    standBongkar: '-',
+    jenis: 'PRA BAYAR',
+    gantiMeter: 'METER TUA',
+    petugas: 'GABRIEL',
+    status: 'BELUM',
+    bulan: 'AGUSTUS',
+    alamat: 'Kecamatan Baguala, Kota Ambon'
+  },
+  {
+    tanggal: 'SENIN 3 AGUSTUS 2026',
+    idPelanggan: '411120015775',
+    namaPelanggan: 'PDT.Y. RISAKOTTA',
+    tarif: 'R1T',
+    daya: 2200,
+    noMeterLama: '32029263590',
+    noMeterBaru: '86297054347',
+    noAgenda: '411300562608181022',
+    noSnMaterialKwh: 'PLN0219000022402686297054347',
+    noSnMaterialMcb: '-',
+    kabelTw: '-',
+    segel: '-',
+    standBongkar: '-',
+    jenis: 'PRA BAYAR',
+    gantiMeter: 'METER TUA',
+    petugas: 'GABRIEL',
+    status: 'BELUM',
+    bulan: 'AGUSTUS',
+    alamat: 'Kecamatan Baguala, Kota Ambon'
+  },
   {
     tanggal: 'SENIN 3 AGUSTUS 2026',
     idPelanggan: '411015040876',

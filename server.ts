@@ -2,11 +2,57 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore, doc, setDoc, writeBatch } from 'firebase/firestore';
+import firebaseConfig from './firebase-applet-config.json';
 import { generateInitialRecords } from './src/data/mockData';
 import { MeterRecord, GoogleSheetConfig, UserAccount, ActivityLog, PetugasName } from './src/types';
 
 const app = express();
 const PORT = 3000;
+
+// Initialize Firebase App & Firestore on Server
+const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+const firestoreDb = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
+
+/**
+ * Server-side helper to push records to Firestore for instant real-time synchronization
+ */
+async function syncToFirestoreServer(records: MeterRecord[]): Promise<void> {
+  if (!records || records.length === 0) return;
+  try {
+    const BATCH_SIZE = 450;
+    for (let i = 0; i < records.length; i += BATCH_SIZE) {
+      const chunk = records.slice(i, i + BATCH_SIZE);
+      const batch = writeBatch(firestoreDb);
+      chunk.forEach(r => {
+        if (r.id) {
+          const docRef = doc(firestoreDb, 'meter_records', String(r.id));
+          batch.set(docRef, {
+            ...r,
+            updatedAt: r.updatedAt || new Date().toISOString()
+          }, { merge: true });
+        }
+      });
+      await batch.commit();
+    }
+  } catch (err) {
+    console.error('[Server Firestore Sync Note]:', err);
+  }
+}
+
+async function saveSingleRecordToFirestoreServer(record: MeterRecord): Promise<void> {
+  if (!record || !record.id) return;
+  try {
+    const docRef = doc(firestoreDb, 'meter_records', String(record.id));
+    await setDoc(docRef, {
+      ...record,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  } catch (err) {
+    console.error('[Server Firestore Single Record Note]:', err);
+  }
+}
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -84,10 +130,8 @@ function loadDb(): AppDatabase {
       const augustRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'AGUSTUS' || (r.tanggal || '').toUpperCase().includes('AGUSTUS'));
       const augustBelum = augustRecords.filter(r => r.status === 'BELUM').length;
       const julyRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'JULI' || (r.tanggal || '').toUpperCase().includes('JULI'));
-      const julyBelum = julyRecords.filter(r => r.status === 'BELUM').length;
 
-      // Both Juli and Agustus must be 100% Selesai (0 Belum) matching Google Sheet master data
-      if (records.length < 100 || augustRecords.length === 0 || julyRecords.length === 0 || augustBelum > 0 || julyBelum > 0) {
+      if (records.length < 100 || augustRecords.length === 0 || julyRecords.length === 0 || augustBelum === 0) {
         const canonical = generateInitialRecords();
         records = canonical;
         parsed.records = canonical;
@@ -210,7 +254,18 @@ function parseCSVToRecords(csvText: string, targetMonth: string): MeterRecord[] 
     const jenis: 'PRA BAYAR' | 'PASKA BAYAR' = rawJenis.includes('PASKA') ? 'PASKA BAYAR' : 'PRA BAYAR';
     const rawGanti = (cleanCols[idxGanti] || '').toUpperCase();
     const gantiMeter: 'METER TUA' | 'METER GANGGUAN' = rawGanti.includes('GANGGUAN') ? 'METER GANGGUAN' : 'METER TUA';
-    const status: 'SELESAI' | 'BELUM' = (cleanCols[idxStatus] || '').toUpperCase().includes('BELUM') ? 'BELUM' : 'SELESAI';
+    const rawStatusStr = (cleanCols[idxStatus] || '').toUpperCase().trim();
+    const rawMeterBaru = (cleanCols[idxNoBaru] || '').trim();
+    const hasMeterBaru = rawMeterBaru !== '' && rawMeterBaru !== '-' && rawMeterBaru.length >= 4;
+
+    let status: 'SELESAI' | 'BELUM' = 'BELUM';
+    if (rawStatusStr.includes('BELUM') || rawStatusStr.includes('BLM') || rawStatusStr.includes('PENDING') || rawStatusStr.includes('PROSES') || rawStatusStr === 'NO' || rawStatusStr === '0') {
+      status = 'BELUM';
+    } else if (rawStatusStr.includes('SELESAI') || rawStatusStr.includes('TERPASANG') || rawStatusStr.includes('SUDAH') || rawStatusStr.includes('DONE') || rawStatusStr === 'OK' || rawStatusStr === 'YES' || rawStatusStr === '1' || hasMeterBaru) {
+      status = 'SELESAI';
+    } else {
+      status = hasMeterBaru ? 'SELESAI' : 'BELUM';
+    }
 
     records.push({
       id: `IMP-${Date.now().toString().slice(-4)}-${i}`,
@@ -239,11 +294,28 @@ function parseCSVToRecords(csvText: string, targetMonth: string): MeterRecord[] 
   return records;
 }
 
+function normalizeMonthName(monthStr?: string, dateStr?: string): string {
+  const str = `${monthStr || ''} ${dateStr || ''}`.toUpperCase().trim();
+  if (str.includes('JUL')) return 'JULI';
+  if (str.includes('AGU')) return 'AGUSTUS';
+  if (str.includes('SEP')) return 'SEPTEMBER';
+  if (str.includes('OKT')) return 'OKTOBER';
+  if (str.includes('NOV')) return 'NOVEMBER';
+  if (str.includes('DES')) return 'DESEMBER';
+  if (str.includes('JAN')) return 'JANUARI';
+  if (str.includes('FEB')) return 'FEBRUARI';
+  if (str.includes('MAR')) return 'MARET';
+  if (str.includes('APR')) return 'APRIL';
+  if (str.includes('MEI')) return 'MEI';
+  if (str.includes('JUN')) return 'JUNI';
+  return (monthStr || 'SEPTEMBER').toUpperCase().trim();
+}
+
 // Merge records safely
 function mergeRecords(sheetRecords: MeterRecord[], existingRecords: MeterRecord[], targetMonth: string): MeterRecord[] {
-  const monthUpper = targetMonth.toUpperCase();
+  const canonicalMonth = normalizeMonthName(targetMonth);
 
-  // Filter out invalid/header records
+  // Filter out invalid/header records and ensure correct canonical month
   const cleanSheet = sheetRecords.filter(r => {
     const id = String(r.idPelanggan || '').toUpperCase().trim();
     const nm = String(r.namaPelanggan || '').toUpperCase().trim();
@@ -252,15 +324,13 @@ function mergeRecords(sheetRecords: MeterRecord[], existingRecords: MeterRecord[
     return true;
   }).map(r => ({
     ...r,
-    bulan: monthUpper
+    bulan: normalizeMonthName(r.bulan || canonicalMonth, r.tanggal)
   }));
 
-  // Keep other months records untouched
-  const otherMonths = existingRecords.filter(r => {
-    const m = (r.bulan || '').toUpperCase();
-    const dt = (r.tanggal || '').toUpperCase();
-    const isThisMonth = (m === monthUpper) || (!m && dt.includes(monthUpper));
-    return !isThisMonth;
+  // Keep records from ALL OTHER months completely untouched
+  const otherMonthsRecords = existingRecords.filter(r => {
+    const rMonth = normalizeMonthName(r.bulan, r.tanggal);
+    return rMonth !== canonicalMonth;
   });
 
   // Preserve user created records that are not in sheet
@@ -270,10 +340,8 @@ function mergeRecords(sheetRecords: MeterRecord[], existingRecords: MeterRecord[
     const sheetAgendas = new Set(cleanSheet.map(r => String(r.noAgenda).trim()));
 
     const userCreated = existingRecords.filter(r => {
-      const m = (r.bulan || '').toUpperCase();
-      const dt = (r.tanggal || '').toUpperCase();
-      const isThisMonth = (m === monthUpper) || (!m && dt.includes(monthUpper));
-      if (!isThisMonth) return false;
+      const rMonth = normalizeMonthName(r.bulan, r.tanggal);
+      if (rMonth !== canonicalMonth) return false;
       const isMock = r.id.startsWith('GM-2026') || r.id.startsWith('IMP-');
       if (isMock) return false;
       const id = String(r.idPelanggan).trim();
@@ -284,21 +352,13 @@ function mergeRecords(sheetRecords: MeterRecord[], existingRecords: MeterRecord[
     thisMonthFinal = [...cleanSheet, ...userCreated];
   } else {
     thisMonthFinal = existingRecords.filter(r => {
-      const m = (r.bulan || '').toUpperCase();
-      const dt = (r.tanggal || '').toUpperCase();
-      return (m === monthUpper) || (!m && dt.includes(monthUpper));
+      return normalizeMonthName(r.bulan, r.tanggal) === canonicalMonth;
     });
   }
 
-  const combined = [...thisMonthFinal, ...otherMonths];
+  const combined = [...thisMonthFinal, ...otherMonthsRecords];
   return combined.map((r, idx) => {
-    let m = r.bulan || monthUpper;
-    const dt = (r.tanggal || '').toUpperCase();
-    if (!r.bulan) {
-      if (dt.includes('JULI')) m = 'JULI';
-      else if (dt.includes('AGUSTUS') || dt.includes('AGU')) m = 'AGUSTUS';
-      else if (dt.includes('SEPTEMBER') || dt.includes('SEP')) m = 'SEPTEMBER';
-    }
+    const m = normalizeMonthName(r.bulan, r.tanggal);
     let p = (r.petugas || '').toUpperCase().trim();
     const found = PETUGAS_LIST.find(pl => p.includes(pl) || pl.includes(p));
     if (found) p = found;
@@ -460,6 +520,7 @@ app.post('/api/records/add', (req, res) => {
   });
   db.logs = db.logs.slice(0, 100);
   saveDb(db);
+  saveSingleRecordToFirestoreServer(fullRecord).catch(() => {});
   res.json({ success: true, record: fullRecord, lastUpdated: db.lastUpdated });
 });
 
@@ -487,6 +548,7 @@ app.put('/api/records/:id', (req, res) => {
   });
   db.logs = db.logs.slice(0, 100);
   saveDb(db);
+  saveSingleRecordToFirestoreServer(db.records[idx]).catch(() => {});
   res.json({ success: true, record: db.records[idx], lastUpdated: db.lastUpdated });
 });
 
@@ -545,6 +607,7 @@ app.post('/api/sync-sheet', async (req, res) => {
         syncStatus: 'connected'
       };
       saveDb(db);
+      syncToFirestoreServer(db.records).catch(() => {});
       return res.json({
         success: true,
         count: result.count,
@@ -589,6 +652,7 @@ app.post('/api/webhook/sheet-update', (req, res) => {
       });
       db.logs = db.logs.slice(0, 100);
       saveDb(db);
+      syncToFirestoreServer(merged).catch(() => {});
       return res.json({ success: true, message: 'Full sync applied', count: db.records.length, lastUpdated: db.lastUpdated });
     }
 
@@ -611,8 +675,17 @@ app.post('/api/webhook/sheet-update', (req, res) => {
       else if (rawPetugas && rawPetugas !== '-') matchedPetugas = rawPetugas as PetugasName;
 
       const rawStatus = String(rowData[16] || '').toUpperCase().trim();
-      const isBelum = rawStatus.includes('BELUM') || rawStatus.includes('BLM') || rawStatus.includes('PENDING') || rawStatus === 'NO';
-      const recordStatus = isBelum ? 'BELUM' : 'SELESAI';
+      const rawNoBaru = String(rowData[6] || '').trim();
+      const hasMeterBaru = rawNoBaru !== '' && rawNoBaru !== '-' && rawNoBaru.length >= 4;
+
+      let recordStatus: 'SELESAI' | 'BELUM' = 'BELUM';
+      if (rawStatus.includes('BELUM') || rawStatus.includes('BLM') || rawStatus.includes('PENDING') || rawStatus.includes('PROSES') || rawStatus === 'NO' || rawStatus === '0') {
+        recordStatus = 'BELUM';
+      } else if (rawStatus.includes('SELESAI') || rawStatus.includes('TERPASANG') || rawStatus.includes('SUDAH') || rawStatus.includes('DONE') || rawStatus === 'OK' || rawStatus === 'YES' || rawStatus === '1' || hasMeterBaru) {
+        recordStatus = 'SELESAI';
+      } else {
+        recordStatus = hasMeterBaru ? 'SELESAI' : 'BELUM';
+      }
 
       const rawJenis = String(rowData[13] || '').toUpperCase();
       const recordJenis = rawJenis.includes('PASKA') || rawJenis.includes('PASCA') ? 'PASKA BAYAR' : 'PRA BAYAR';
@@ -688,6 +761,11 @@ app.post('/api/webhook/sheet-update', (req, res) => {
       });
       db.logs = db.logs.slice(0, 100);
       saveDb(db);
+
+      const modifiedRec = existingIdx !== -1 ? db.records[existingIdx] : db.records[0];
+      if (modifiedRec) {
+        saveSingleRecordToFirestoreServer(modifiedRec).catch(() => {});
+      }
 
       return res.json({
         success: true,
@@ -848,23 +926,22 @@ app.get('/api/logs', (req, res) => {
 // START SERVER WITH VITE MIDDLEWARE (DEV) / STATIC (PROD)
 // -------------------------------------------------------------
 async function startServer() {
-  // Perform background initial sync on startup for all months if records empty
+  // Perform startup sync from Google Sheet for all active months and push to Firestore
   const initialDb = loadDb();
-  if (initialDb.records.length === 0) {
-    console.log('Centralized DB empty on start. Syncing from Google Sheet...');
-    try {
-      const months = ['AGUSTUS', 'JULI', 'SEPTEMBER'];
-      for (const m of months) {
-        const syncRes = await pullFromGoogleSheet(m, initialDb.config, initialDb.records);
-        if (syncRes.success && syncRes.records.length > 0) {
-          initialDb.records = syncRes.records;
-        }
+  console.log('Syncing active months from Google Sheet on startup...');
+  try {
+    const months = ['AGUSTUS', 'JULI', 'SEPTEMBER'];
+    for (const m of months) {
+      const syncRes = await pullFromGoogleSheet(m, initialDb.config, initialDb.records);
+      if (syncRes.success && syncRes.records.length > 0) {
+        initialDb.records = syncRes.records;
       }
-      saveDb(initialDb);
-      console.log(`Initial sync completed. Total records: ${initialDb.records.length}`);
-    } catch (e) {
-      console.warn('Initial server Google Sheet sync warning:', e);
     }
+    saveDb(initialDb);
+    syncToFirestoreServer(initialDb.records).catch(() => {});
+    console.log(`Startup Google Sheet & Firestore sync completed. Total records: ${initialDb.records.length}`);
+  } catch (e) {
+    console.warn('Startup Google Sheet sync note:', e);
   }
 
   if (process.env.NODE_ENV !== 'production') {
@@ -881,27 +958,36 @@ async function startServer() {
     });
   }
 
-  // Background polling loop (auto-sync every 20 seconds)
+  // Background polling loop (auto-sync every 5 seconds for fast real-time Google Sheet synchronization)
   setInterval(async () => {
     try {
       const db = loadDb();
       if (!db.config.autoSync) return;
-      const targetMonth = db.config.selectedSheetTab || 'AGUSTUS';
-      const pullRes = await pullFromGoogleSheet(targetMonth, db.config, db.records);
-      if (pullRes.success && pullRes.count > 0) {
-        // Compare if anything changed
-        if (JSON.stringify(pullRes.records) !== JSON.stringify(db.records)) {
-          db.records = pullRes.records;
-          db.config.lastSyncTime = new Date().toISOString();
-          db.config.syncStatus = 'connected';
-          saveDb(db);
-          console.log(`[Auto-Sync] Pulled ${pullRes.count} records from Google Sheet tab ${targetMonth}`);
+      
+      const activeMonths = ['JULI', 'AGUSTUS', 'SEPTEMBER'];
+      let currentRecordsList = db.records;
+      let syncHappened = false;
+
+      for (const m of activeMonths) {
+        const pullRes = await pullFromGoogleSheet(m, db.config, currentRecordsList);
+        if (pullRes.success && pullRes.records && pullRes.records.length > 0) {
+          currentRecordsList = pullRes.records;
+          syncHappened = true;
         }
+      }
+
+      if (syncHappened && JSON.stringify(currentRecordsList) !== JSON.stringify(db.records)) {
+        db.records = currentRecordsList;
+        db.config.lastSyncTime = new Date().toISOString();
+        db.config.syncStatus = 'connected';
+        saveDb(db);
+        syncToFirestoreServer(db.records).catch(() => {});
+        console.log(`[Auto-Sync Realtime] Pulled active months from Google Sheet & synced to Firestore (${db.records.length} records)`);
       }
     } catch {
       // Silent catch for background interval
     }
-  }, 20000);
+  }, 5000);
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`⚡ PLN MBG Server running on http://0.0.0.0:${PORT}`);
