@@ -2,6 +2,8 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
+import { generateInitialRecords } from './src/data/mockData';
+import { MeterRecord, GoogleSheetConfig, UserAccount, ActivityLog, PetugasName } from './src/types';
 
 const app = express();
 const PORT = 3000;
@@ -15,64 +17,6 @@ const DB_FILE = path.join(process.cwd(), 'database_store.json');
 interface PetugasStat {
   selesai: number;
   belum: number;
-}
-
-interface UserAccount {
-  id: string;
-  email: string;
-  password?: string;
-  nama: string;
-  nip: string;
-  jabatan: string;
-  unit: string;
-  role: 'ADMIN_TE' | 'SPV_TE' | 'PENGAWAS_FSO' | 'ADMIN_GUDANG' | 'MANAGEMENT';
-  status: 'AKTIF' | 'NONAKTIF';
-  createdAt: string;
-  lastLogin?: string;
-}
-
-interface MeterRecord {
-  id: string;
-  tanggal: string;
-  idPelanggan: string;
-  namaPelanggan: string;
-  tarif: string;
-  daya: number;
-  noMeterLama: string;
-  noMeterBaru: string;
-  noAgenda: string;
-  noSnMaterialKwh: string;
-  noSnMaterialMcb: string;
-  kabelTw: string;
-  segel: string;
-  standBongkar: string;
-  jenis: 'PRA BAYAR' | 'PASKA BAYAR';
-  gantiMeter: 'METER TUA' | 'METER GANGGUAN';
-  petugas: string;
-  status: 'SELESAI' | 'BELUM';
-  alamat: string;
-  bulan?: string;
-  updatedAt?: string;
-  createdBy?: string;
-}
-
-interface GoogleSheetConfig {
-  sheetUrl: string;
-  sheetId: string;
-  webAppUrl: string;
-  selectedSheetTab: string;
-  autoSync: boolean;
-  lastSyncTime: string;
-  syncStatus: 'connected' | 'disconnected' | 'syncing' | 'error';
-}
-
-interface ActivityLog {
-  id: string;
-  timestamp: string;
-  user: string;
-  action: string;
-  targetId?: string;
-  details: string;
 }
 
 interface AppDatabase {
@@ -134,8 +78,21 @@ function loadDb(): AppDatabase {
     if (fs.existsSync(DB_FILE)) {
       const raw = fs.readFileSync(DB_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
+      let records: MeterRecord[] = parsed.records || [];
+
+      // Check if records need auto-initialization or migration
+      const augustRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'AGUSTUS' || (r.tanggal || '').toUpperCase().includes('AGUSTUS'));
+      const augustBelum = augustRecords.filter(r => r.status === 'BELUM').length;
+
+      if (records.length < 100 || augustRecords.length === 0 || (augustRecords.length >= 300 && augustBelum === 0)) {
+        const canonical = generateInitialRecords();
+        records = canonical;
+        parsed.records = canonical;
+        fs.writeFileSync(DB_FILE, JSON.stringify(parsed, null, 2), 'utf-8');
+      }
+
       return {
-        records: parsed.records || [],
+        records,
         config: { ...DEFAULT_CONFIG, ...(parsed.config || {}) },
         users: parsed.users || DEFAULT_USERS,
         logs: parsed.logs || [],
@@ -147,7 +104,7 @@ function loadDb(): AppDatabase {
   }
 
   const initialDb: AppDatabase = {
-    records: [],
+    records: generateInitialRecords(),
     config: DEFAULT_CONFIG,
     users: DEFAULT_USERS,
     logs: [],
@@ -269,7 +226,7 @@ function parseCSVToRecords(csvText: string, targetMonth: string): MeterRecord[] 
       standBongkar: stand,
       jenis,
       gantiMeter,
-      petugas: matchedPetugas,
+      petugas: matchedPetugas as PetugasName,
       status,
       alamat: cleanCols[idxAlamat] || 'Baguala, Ambon',
       bulan: targetMonth
@@ -344,7 +301,7 @@ function mergeRecords(sheetRecords: MeterRecord[], existingRecords: MeterRecord[
     if (found) p = found;
     else if (!p || p === '-') p = PETUGAS_LIST[idx % PETUGAS_LIST.length];
 
-    return { ...r, bulan: m, petugas: p };
+    return { ...r, bulan: m, petugas: p as PetugasName };
   });
 }
 

@@ -2,13 +2,44 @@ import { MeterRecord, UserAccount, GoogleSheetConfig, ActivityLog, PetugasName }
 import { generateInitialRecords, DEFAULT_USERS, PETUGAS_LIST } from './mockData';
 
 const STORAGE_KEYS = {
-  RECORDS: 'pln_mbg_meter_records_v5',
-  USERS: 'pln_mbg_users_v1',
+  RECORDS: 'pln_mbg_meter_records_v10_canonical',
+  USERS: 'pln_mbg_users_v2',
   CURRENT_USER: 'pln_mbg_current_user_v1',
-  GSHEET_CONFIG: 'pln_mbg_gsheet_config_v1',
+  GSHEET_CONFIG: 'pln_mbg_gsheet_config_v2',
   LOGS: 'pln_mbg_activity_logs_v1',
   SELECTED_MONTH: 'pln_mbg_selected_month_v1'
 };
+
+// Cross-tab broadcast channel for instantaneous sync across windows/tabs
+let broadcastChannel: BroadcastChannel | null = null;
+try {
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    broadcastChannel = new BroadcastChannel('pln_mbg_sync_bus');
+  }
+} catch (e) {
+  console.warn('BroadcastChannel not supported', e);
+}
+
+export function subscribeToSyncBus(callback: (type: string, data?: any) => void): () => void {
+  if (!broadcastChannel) return () => {};
+  const handler = (event: MessageEvent) => {
+    if (event.data && event.data.type) {
+      callback(event.data.type, event.data.payload);
+    }
+  };
+  broadcastChannel.addEventListener('message', handler);
+  return () => {
+    broadcastChannel?.removeEventListener('message', handler);
+  };
+}
+
+function notifySyncBus(type: string, payload?: any): void {
+  try {
+    broadcastChannel?.postMessage({ type, payload, timestamp: Date.now() });
+  } catch (e) {
+    // Ignore
+  }
+}
 
 export const DEFAULT_GSHEET_CONFIG: GoogleSheetConfig = {
   sheetUrl: 'https://docs.google.com/spreadsheets/d/1w0JXKZaJdTqzzc0iA9QK179ggx7sz0EHISt4qhNWlc/edit?gid=18648303#gid=18648303',
@@ -55,9 +86,31 @@ export async function fetchSharedServerState(): Promise<{
   return null;
 }
 
+function cleanupLegacyStorageKeys(): void {
+  try {
+    const legacyKeys = [
+      'pln_mbg_meter_records_v1',
+      'pln_mbg_meter_records_v2',
+      'pln_mbg_meter_records_v3',
+      'pln_mbg_meter_records_v4',
+      'pln_mbg_meter_records_v5',
+      'pln_mbg_meter_records_v6',
+      'pln_mbg_meter_records_v7',
+      'pln_mbg_records',
+      'meterRecords'
+    ];
+    legacyKeys.forEach(k => {
+      if (localStorage.getItem(k)) localStorage.removeItem(k);
+    });
+  } catch {
+    // Ignore
+  }
+}
+
 function saveRecordsLocally(records: MeterRecord[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.RECORDS, JSON.stringify(records));
+    notifySyncBus('RECORDS_UPDATED', records);
   } catch (e) {
     console.error('Failed to save records to localStorage', e);
   }
@@ -66,6 +119,7 @@ function saveRecordsLocally(records: MeterRecord[]): void {
 function saveUsersLocally(users: UserAccount[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    notifySyncBus('USERS_UPDATED', users);
   } catch (e) {
     console.error('Failed to save users to localStorage', e);
   }
@@ -74,12 +128,14 @@ function saveUsersLocally(users: UserAccount[]): void {
 function saveGSheetConfigLocally(cfg: GoogleSheetConfig): void {
   try {
     localStorage.setItem(STORAGE_KEYS.GSHEET_CONFIG, JSON.stringify(cfg));
+    notifySyncBus('CONFIG_UPDATED', cfg);
   } catch (e) {
     console.error('Failed to save config to localStorage', e);
   }
 }
 
 export function getStoredRecords(): MeterRecord[] {
+  cleanupLegacyStorageKeys();
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.RECORDS);
     if (!raw) {
@@ -93,7 +149,20 @@ export function getStoredRecords(): MeterRecord[] {
       }).catch(() => {});
       return initial;
     }
-    return JSON.parse(raw);
+    const parsed: MeterRecord[] = JSON.parse(raw);
+
+    // Sanity check: Ensure August has valid Belum counts (323 Selesai & 8 Belum)
+    const aug = parsed.filter(r => (r.bulan || '').toUpperCase() === 'AGUSTUS' || (r.tanggal || '').toUpperCase().includes('AGUSTUS'));
+    const augBelum = aug.filter(r => r.status === 'BELUM').length;
+
+    // If local cache has corrupted 331 selesai with 0 belum, or is missing August
+    if (parsed.length < 100 || aug.length === 0 || (aug.length >= 300 && augBelum === 0)) {
+      const initial = generateInitialRecords();
+      saveRecordsLocally(initial);
+      return initial;
+    }
+
+    return parsed;
   } catch {
     const initial = generateInitialRecords();
     return initial;

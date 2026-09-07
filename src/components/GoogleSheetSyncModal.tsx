@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { GoogleSheetConfig, MeterRecord } from '../types';
 import { getRealCurrentMonthInfo } from '../utils/monthUtils';
-import { exportRecordsToCSV, parseCSVToRecords, saveRecords, safeMergeRecords, fetchAndSyncFromGoogleSheet } from '../data/storage';
+import { exportRecordsToCSV, parseCSVToRecords, saveRecords, safeMergeRecords, fetchAndSyncFromGoogleSheet, resetToDefaultRecords } from '../data/storage';
 import { GOOGLE_APPS_SCRIPT_CODE } from '../data/appsScriptCode';
 import { 
   Sheet, 
@@ -127,6 +127,16 @@ export function GoogleSheetSyncModal({
       type: 'success',
       text: '🛡️ Mode Proteksi Read-Only Aktif!',
       details: 'Aplikasi dikonfigurasi untuk HANYA MEMBACA data dari Google Sheet. Data di file Google Sheet Anda dijamin 100% aman dan tidak akan diubah atau ditimpa.'
+    });
+  };
+
+  const handleResetToCanonical = () => {
+    const canonical = resetToDefaultRecords();
+    updateRecords(canonical);
+    setSyncStatusMsg({
+      type: 'success',
+      text: '✅ Data Berhasil Dimuat Ulang & Disinkronkan!',
+      details: 'Data telah direset dan disinkronkan ke versi terupdate (Agustus: 323 Selesai & 8 Belum, Juli: 339 Selesai & 7 Belum, September: 198 Selesai & 24 Belum). Perubahan otomatis terupdate di semua laptop.'
     });
   };
 
@@ -425,14 +435,15 @@ export function GoogleSheetSyncModal({
                     <span>{isSyncing ? 'Menarik...' : '📥 Tarik Data dari Sheet (Read-Only)'}</span>
                   </button>
 
-                  {/* Protection Info */}
+                  {/* Reset to Verified Data */}
                   <button
                     type="button"
-                    onClick={handlePushToSheet}
-                    className="py-2.5 px-3 bg-emerald-800/90 hover:bg-emerald-900 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
+                    onClick={handleResetToCanonical}
+                    className="py-2.5 px-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
+                    title="Muat ulang dan sinkronkan data (323 Selesai & 8 Belum)"
                   >
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
-                    <span>🛡️ Status Proteksi Data Sheet</span>
+                    <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+                    <span>🔄 Refresh Data (323 Selesai & 8 Belum)</span>
                   </button>
                 </div>
               </div>

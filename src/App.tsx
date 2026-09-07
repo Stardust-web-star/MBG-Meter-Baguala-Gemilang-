@@ -26,6 +26,7 @@ import {
   safeMergeRecords,
   fetchAndSyncFromGoogleSheet,
   fetchSharedServerState,
+  subscribeToSyncBus,
   syncAddRecordToSheetBackground,
   syncUpdateRecordToSheetBackground
 } from './data/storage';
@@ -125,7 +126,7 @@ export default function App() {
       });
     });
 
-    // 4. Periodic Cross-Laptop Background Polling every 12 seconds
+    // 4. Periodic Cross-Laptop Background Polling every 10 seconds
     const intervalId = setInterval(async () => {
       const shared = await fetchSharedServerState();
       if (shared && shared.records && shared.records.length > 0) {
@@ -133,10 +134,12 @@ export default function App() {
         if (shared.config) setSheetConfig(shared.config);
         if (shared.users) setUsers(shared.users);
       }
-    }, 12000);
+    }, 10000);
 
     // 5. Window Focus / Tab Re-open Sync (Immediate Refresh on focus)
     const handleFocusSync = async () => {
+      const storedRecs = getStoredRecords();
+      setRecords(storedRecs);
       const shared = await fetchSharedServerState();
       if (shared && shared.records && shared.records.length > 0) {
         setRecords(shared.records);
@@ -145,9 +148,33 @@ export default function App() {
     };
     window.addEventListener('focus', handleFocusSync);
 
+    // 6. Cross-Tab & Cross-Window Instant Sync
+    const unsubscribeBus = subscribeToSyncBus((type, payload) => {
+      if (type === 'RECORDS_UPDATED' && Array.isArray(payload)) {
+        setRecords(payload);
+      } else if (type === 'USERS_UPDATED' && Array.isArray(payload)) {
+        setUsers(payload);
+      } else if (type === 'CONFIG_UPDATED' && payload) {
+        setSheetConfig(payload);
+      }
+    });
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key?.includes('pln_mbg_meter_records')) {
+        setRecords(getStoredRecords());
+      } else if (e.key?.includes('pln_mbg_users')) {
+        setUsers(getStoredUsers());
+      } else if (e.key?.includes('pln_mbg_gsheet_config')) {
+        setSheetConfig(getGSheetConfig());
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
     return () => {
       clearInterval(intervalId);
       window.removeEventListener('focus', handleFocusSync);
+      window.removeEventListener('storage', handleStorageChange);
+      unsubscribeBus();
     };
   }, []);
 
