@@ -308,7 +308,7 @@ function mergeRecords(sheetRecords: MeterRecord[], existingRecords: MeterRecord[
   });
 }
 
-// Server-side pull from Google Sheet
+// Server-side pull from Google Sheet with multi-tab aliases and multi-month extraction
 async function pullFromGoogleSheet(month: string, config: GoogleSheetConfig, currentRecords: MeterRecord[]) {
   const monthUpper = month.toUpperCase();
   const webAppUrl = (config.webAppUrl || DEFAULT_CONFIG.webAppUrl).trim();
@@ -317,9 +317,10 @@ async function pullFromGoogleSheet(month: string, config: GoogleSheetConfig, cur
   let pulled: MeterRecord[] = [];
   let isSuccess = false;
 
-  // 1. Try Apps Script Web App
+  // 1. Try Apps Script Web App (Check both allMonths and specific sheetName)
   if (webAppUrl) {
     try {
+      // First try allMonths or specific tab
       const targetUrl = `${webAppUrl}${webAppUrl.includes('?') ? '&' : '?'}sheetName=${encodeURIComponent(monthUpper)}&t=${Date.now()}`;
       const res = await fetch(targetUrl, { signal: AbortSignal.timeout(8000) });
       if (res.ok) {
@@ -337,21 +338,49 @@ async function pullFromGoogleSheet(month: string, config: GoogleSheetConfig, cur
     }
   }
 
-  // 2. Try Gviz CSV
+  // 2. Try Gviz CSV with tab name aliases
   if (!isSuccess && sheetId) {
-    try {
-      const gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(monthUpper)}&t=${Date.now()}`;
-      const res = await fetch(gvizUrl, { signal: AbortSignal.timeout(8000) });
-      if (res.ok) {
-        const csv = await res.text();
-        const parsed = parseCSVToRecords(csv, monthUpper);
-        if (parsed.length > 0) {
-          pulled = parsed;
-          isSuccess = true;
+    const tabAliases: Record<string, string[]> = {
+      'AGUSTUS': ['AGUSTUS', 'MON AGU', 'MONITORING AGUSTUS', 'MON AGUSTUS', 'Sheet1'],
+      'JULI': ['JULI', 'MON JUL', 'MONITORING JULI', 'MON JULI'],
+      'SEPTEMBER': ['SEPTEMBER', 'MON SEP', 'MONITORING SEPTEMBER', 'MON SEPTEMBER']
+    };
+
+    const candidates = tabAliases[monthUpper] || [monthUpper];
+    for (const tabName of candidates) {
+      try {
+        const gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}&t=${Date.now()}`;
+        const res = await fetch(gvizUrl, { signal: AbortSignal.timeout(6000) });
+        if (res.ok) {
+          const csv = await res.text();
+          const parsed = parseCSVToRecords(csv, monthUpper);
+          if (parsed.length > 0) {
+            pulled = parsed;
+            isSuccess = true;
+            break;
+          }
         }
+      } catch {
+        // try next alias
       }
-    } catch (e) {
-      console.warn(`Server Gviz fetch for ${monthUpper} note:`, (e as Error).message);
+    }
+
+    // Also try direct CSV export if Gviz failed
+    if (!isSuccess) {
+      try {
+        const exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&sheet=${encodeURIComponent(monthUpper)}&t=${Date.now()}`;
+        const res = await fetch(exportUrl, { signal: AbortSignal.timeout(6000) });
+        if (res.ok) {
+          const csv = await res.text();
+          const parsed = parseCSVToRecords(csv, monthUpper);
+          if (parsed.length > 0) {
+            pulled = parsed;
+            isSuccess = true;
+          }
+        }
+      } catch {
+        // Ignore export fail
+      }
     }
   }
 
@@ -538,6 +567,206 @@ app.post('/api/sync-sheet', async (req, res) => {
   }
 });
 
+// Real-time Webhook endpoint from Google Sheet Apps Script (Triggered on cell edit)
+app.post('/api/webhook/sheet-update', (req, res) => {
+  try {
+    const payload = req.body;
+    const db = loadDb();
+    
+    // Case 1: Full batch sync from Apps Script menu
+    if (payload.action === 'full_sync' && Array.isArray(payload.records)) {
+      const merged = mergeRecords(payload.records, db.records, db.config.selectedSheetTab || 'AGUSTUS');
+      db.records = merged;
+      db.config.lastSyncTime = new Date().toISOString();
+      db.config.syncStatus = 'connected';
+      db.logs.unshift({
+        id: `LOG-${Date.now().toString().slice(-6)}`,
+        timestamp: new Date().toLocaleString('id-ID'),
+        user: 'Google Sheet Webhook',
+        action: 'WEBHOOK_FULL_SYNC',
+        targetId: 'ALL',
+        details: `Sinkronisasi instan seluruh data dari Google Sheet (${payload.records.length} data)`
+      });
+      db.logs = db.logs.slice(0, 100);
+      saveDb(db);
+      return res.json({ success: true, message: 'Full sync applied', count: db.records.length, lastUpdated: db.lastUpdated });
+    }
+
+    // Case 2: Real-time single row cell edit from onEdit trigger
+    if (payload.event === 'cell_edit' && Array.isArray(payload.data)) {
+      const rowData = payload.data;
+      const sheetName = (payload.sheetName || '').toUpperCase();
+      const defaultMonth = sheetName.includes('JUL') ? 'JULI' : (sheetName.includes('SEP') ? 'SEPTEMBER' : 'AGUSTUS');
+
+      const idpel = String(rowData[1] || '').trim();
+      const nama = String(rowData[2] || '').trim();
+      if (!idpel && !nama) {
+        return res.json({ success: true, message: 'Ignored empty row edit' });
+      }
+
+      const rawPetugas = String(rowData[15] || '').toUpperCase().trim();
+      let matchedPetugas: PetugasName = 'GABRIEL';
+      const found = PETUGAS_LIST.find(p => rawPetugas.includes(p) || p.includes(rawPetugas));
+      if (found) matchedPetugas = found as PetugasName;
+      else if (rawPetugas && rawPetugas !== '-') matchedPetugas = rawPetugas as PetugasName;
+
+      const rawStatus = String(rowData[16] || '').toUpperCase().trim();
+      const isBelum = rawStatus.includes('BELUM') || rawStatus.includes('BLM') || rawStatus.includes('PENDING') || rawStatus === 'NO';
+      const recordStatus = isBelum ? 'BELUM' : 'SELESAI';
+
+      const rawJenis = String(rowData[13] || '').toUpperCase();
+      const recordJenis = rawJenis.includes('PASKA') || rawJenis.includes('PASCA') ? 'PASKA BAYAR' : 'PRA BAYAR';
+
+      const rawGanti = String(rowData[14] || '').toUpperCase();
+      const recordGanti = rawGanti.includes('GANGGUAN') || rawGanti.includes('HILANG') || rawGanti.includes('RUSAK') ? 'METER GANGGUAN' : 'METER TUA';
+
+      // Find existing record
+      const existingIdx = db.records.findIndex(r => 
+        (idpel && String(r.idPelanggan).trim() === idpel) || 
+        (rowData[7] && String(rowData[7]).trim() !== '-' && String(r.noAgenda).trim() === String(rowData[7]).trim())
+      );
+
+      if (existingIdx !== -1) {
+        db.records[existingIdx] = {
+          ...db.records[existingIdx],
+          tanggal: String(rowData[0] || db.records[existingIdx].tanggal),
+          namaPelanggan: nama || db.records[existingIdx].namaPelanggan,
+          tarif: String(rowData[3] || db.records[existingIdx].tarif),
+          daya: parseInt(rowData[4]) || db.records[existingIdx].daya,
+          noMeterLama: String(rowData[5] || db.records[existingIdx].noMeterLama),
+          noMeterBaru: String(rowData[6] || db.records[existingIdx].noMeterBaru),
+          noAgenda: String(rowData[7] || db.records[existingIdx].noAgenda),
+          noSnMaterialKwh: String(rowData[8] || db.records[existingIdx].noSnMaterialKwh),
+          noSnMaterialMcb: String(rowData[9] || db.records[existingIdx].noSnMaterialMcb),
+          kabelTw: String(rowData[10] || db.records[existingIdx].kabelTw),
+          segel: String(rowData[11] || db.records[existingIdx].segel),
+          standBongkar: String(rowData[12] || db.records[existingIdx].standBongkar),
+          jenis: recordJenis,
+          gantiMeter: recordGanti,
+          petugas: matchedPetugas,
+          status: recordStatus,
+          alamat: String(rowData[17] || db.records[existingIdx].alamat),
+          bulan: defaultMonth,
+          updatedAt: new Date().toISOString()
+        };
+      } else {
+        const newRecord: MeterRecord = {
+          id: `GS-${idpel || Date.now()}`,
+          tanggal: String(rowData[0] || 'SENIN 3 AGUSTUS 2026'),
+          idPelanggan: idpel || `411300${Math.floor(100000 + Math.random() * 900000)}`,
+          namaPelanggan: nama || 'Pelanggan',
+          tarif: String(rowData[3] || 'R1'),
+          daya: parseInt(rowData[4]) || 1300,
+          noMeterLama: String(rowData[5] || '-'),
+          noMeterBaru: String(rowData[6] || '-'),
+          noAgenda: String(rowData[7] || '-'),
+          noSnMaterialKwh: String(rowData[8] || '-'),
+          noSnMaterialMcb: String(rowData[9] || '-'),
+          kabelTw: String(rowData[10] || '-'),
+          segel: String(rowData[11] || '-'),
+          standBongkar: String(rowData[12] || '-'),
+          jenis: recordJenis,
+          gantiMeter: recordGanti,
+          petugas: matchedPetugas,
+          status: recordStatus,
+          alamat: String(rowData[17] || 'Wilayah ULP Baguala'),
+          bulan: defaultMonth,
+          updatedAt: new Date().toISOString()
+        };
+        db.records.unshift(newRecord);
+      }
+
+      db.config.lastSyncTime = new Date().toISOString();
+      db.config.syncStatus = 'connected';
+      db.logs.unshift({
+        id: `LOG-${Date.now().toString().slice(-6)}`,
+        timestamp: new Date().toLocaleString('id-ID'),
+        user: 'Google Sheet onEdit',
+        action: 'REALTIME_UPDATE',
+        targetId: idpel,
+        details: `Perubahan langsung di Google Sheet untuk IDPEL: ${idpel} (${nama}) -> Status: ${recordStatus}, Petugas: ${matchedPetugas}`
+      });
+      db.logs = db.logs.slice(0, 100);
+      saveDb(db);
+
+      return res.json({
+        success: true,
+        message: `Real-time update berhasil diterapkan untuk IDPEL ${idpel}`,
+        idPelanggan: idpel,
+        status: recordStatus,
+        lastUpdated: db.lastUpdated
+      });
+    }
+
+    res.json({ success: true, message: 'Webhook payload received' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Diagnostic API for testing Google Sheet Connection
+app.post('/api/test-sheet-connection', async (req, res) => {
+  const { config } = req.body;
+  const activeCfg = config || loadDb().config;
+  const diagnostics: any = {
+    webApp: { checked: false, success: false, message: '', count: 0 },
+    gviz: { checked: false, success: false, message: '', count: 0 }
+  };
+
+  // Test Web App
+  if (activeCfg.webAppUrl) {
+    diagnostics.webApp.checked = true;
+    try {
+      const url = `${activeCfg.webAppUrl}${activeCfg.webAppUrl.includes('?') ? '&' : '?'}sheetName=AGUSTUS&t=${Date.now()}`;
+      const response = await fetch(url, { signal: AbortSignal.timeout(6000) });
+      diagnostics.webApp.status = response.status;
+      if (response.ok) {
+        const json = await response.json();
+        if (json && (json.status === 'success' || Array.isArray(json.data))) {
+          const arr = Array.isArray(json.data) ? json.data : [];
+          diagnostics.webApp.success = true;
+          diagnostics.webApp.count = arr.length;
+          diagnostics.webApp.message = `Berhasil terhubung ke Web App! Ditemukan ${arr.length} baris data.`;
+        } else {
+          diagnostics.webApp.message = `Respon Web App: ${JSON.stringify(json).slice(0, 100)}`;
+        }
+      } else {
+        diagnostics.webApp.message = `Web App mengembalikan status HTTP ${response.status}`;
+      }
+    } catch (e: any) {
+      diagnostics.webApp.message = `Gagal menghubungi Web App: ${e.message}`;
+    }
+  }
+
+  // Test Gviz
+  if (activeCfg.sheetId) {
+    diagnostics.gviz.checked = true;
+    try {
+      const url = `https://docs.google.com/spreadsheets/d/${activeCfg.sheetId}/gviz/tq?tqx=out:csv&sheet=AGUSTUS&t=${Date.now()}`;
+      const response = await fetch(url, { signal: AbortSignal.timeout(6000) });
+      diagnostics.gviz.status = response.status;
+      if (response.ok) {
+        const text = await response.text();
+        const records = parseCSVToRecords(text, 'AGUSTUS');
+        diagnostics.gviz.success = records.length > 0;
+        diagnostics.gviz.count = records.length;
+        diagnostics.gviz.message = records.length > 0 
+          ? `Berhasil membaca Google Sheet langsung! Ditemukan ${records.length} data.`
+          : 'Google Sheet dapat diakses namun tidak ada data baris yang cocok.';
+      } else {
+        diagnostics.gviz.message = `Google Sheet mengembalikan HTTP ${response.status}. Pastikan spreadsheet dibagikan sebagai "Anyone with the link can view".`;
+      }
+    } catch (e: any) {
+      diagnostics.gviz.message = `Gagal menghubungi Google Sheet: ${e.message}`;
+    }
+  }
+
+  res.json({
+    success: diagnostics.webApp.success || diagnostics.gviz.success,
+    diagnostics
+  });
+});
+
 // Users Management
 app.get('/api/users', (req, res) => {
   const db = loadDb();
@@ -651,6 +880,28 @@ async function startServer() {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+
+  // Background polling loop (auto-sync every 20 seconds)
+  setInterval(async () => {
+    try {
+      const db = loadDb();
+      if (!db.config.autoSync) return;
+      const targetMonth = db.config.selectedSheetTab || 'AGUSTUS';
+      const pullRes = await pullFromGoogleSheet(targetMonth, db.config, db.records);
+      if (pullRes.success && pullRes.count > 0) {
+        // Compare if anything changed
+        if (JSON.stringify(pullRes.records) !== JSON.stringify(db.records)) {
+          db.records = pullRes.records;
+          db.config.lastSyncTime = new Date().toISOString();
+          db.config.syncStatus = 'connected';
+          saveDb(db);
+          console.log(`[Auto-Sync] Pulled ${pullRes.count} records from Google Sheet tab ${targetMonth}`);
+        }
+      }
+    } catch {
+      // Silent catch for background interval
+    }
+  }, 20000);
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`⚡ PLN MBG Server running on http://0.0.0.0:${PORT}`);

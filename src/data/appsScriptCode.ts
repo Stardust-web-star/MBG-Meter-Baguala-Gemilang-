@@ -1,6 +1,6 @@
 /**
  * Google Apps Script (.gs) Code for PLN ULP Baguala Meter Replacement Dashboard (MBG 2026)
- * SAFE READ-ONLY DATA SYNC (SINKRONISASI MEMBACA TANPA MENGUBAH SPREADSHEET)
+ * REAL-TIME AUTO-SYNC & SAFE 2-WAY INTEGRATION (SINKRONISASI OTOMATIS LANGSUNG DENGAN DASHBOARD)
  * 
  * Pasang kode ini di Google Sheets -> Extensions (Ekstensi) -> Apps Script
  */
@@ -11,11 +11,16 @@ export const GOOGLE_APPS_SCRIPT_CODE = `/**
  * PT PLN (PERSERO) ULP BAGUALA - UP3 AMBON
  * =========================================================================
  * 
- * 🛡️ GARANSI KEAMANAN DATA SPREADSHEET (PROTEKSI READ-ONLY):
- * - Script ini bertindak sebagai API Read-Only aman untuk Dashboard Monitoring.
- * - Aplikasi hanya membaca & menarik data dari Google Sheet ke dashboard.
- * - Data di Google Sheet Anda 100% AMAN, UTUH, dan TIDAK AKAN DIUBAH ATAU DITIMPA.
+ * ⚡ FITUR SINKRONISASI OTOMATIS REAL-TIME:
+ * 1. Web App API: Menyediakan endpoint GET untuk menarik data langsung ke Dashboard.
+ * 2. Real-Time Webhook (onEdit): Setiap perubahan status (Selesai/Belum) atau data di Sheet
+ *    otomatis dikirim seketika ke Dashboard tanpa perlu refresh manual.
+ * 3. Menu Cepat: Tombol sinkronisasi 1-klik langsung dari menu Google Sheet.
+ * 4. 100% Proteksi Data: Tidak akan pernah menghapus data di Google Sheet Anda.
  */
+
+// URL Dashboard Webhook (Akan menerima pembaruan otomatis saat Sheet diedit)
+var DASHBOARD_WEBHOOK_URL = ""; 
 
 // Konfigurasi Header Standar 18 Kolom PLN ULP Baguala
 var STANDARD_HEADERS = [
@@ -39,15 +44,94 @@ var STANDARD_HEADERS = [
   'ALAMAT'
 ];
 
+var OFFICER_LIST = ['ABDUL', 'ANDRE', 'AUNUR', 'FEKI', 'FRANS', 'GABRIEL', 'HANS', 'HARDIN', 'ONYONG', 'PIYER', 'RAHMAT', 'RISKI', 'RIZKY', 'SALOMO', 'VAL', 'YONO', 'YUSRIL'];
+
 /**
  * Menu otomatis saat Spreadsheet dibuka di browser
  */
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('⚡ PLN Baguala MBG')
+    .addItem('🔄 Sinkronkan Data ke Dashboard Web Sekarang', 'syncAllToDashboard')
+    .addSeparator()
     .addItem('🛠️ Format Header Standar 18 Kolom', 'setupSheet')
     .addItem('📊 Rekap Status Penggantian Meter', 'showSummaryAlert')
     .addToUi();
+}
+
+/**
+ * Pemicu Otomatis Saat Ada Perubahan Cell di Sheet (Real-Time Auto Sync)
+ */
+function onEdit(e) {
+  try {
+    if (!e || !e.range) return;
+    var sheet = e.range.getSheet();
+    var sheetName = sheet.getName();
+    var row = e.range.getRow();
+    
+    // Abaikan perubahan pada baris header (baris 1)
+    if (row <= 1) return;
+    
+    // Jika Webhook URL telah diisi, kirim notifikasi update instan ke Dashboard
+    if (DASHBOARD_WEBHOOK_URL && DASHBOARD_WEBHOOK_URL.trim().length > 10) {
+      var rowData = sheet.getRange(row, 1, 1, Math.max(sheet.getLastColumn(), 18)).getValues()[0];
+      var payload = {
+        event: 'cell_edit',
+        sheetName: sheetName,
+        row: row,
+        timestamp: new Date().toISOString(),
+        data: rowData
+      };
+      
+      var options = {
+        method: 'post',
+        contentType: 'application/json',
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      };
+      
+      UrlFetchApp.fetch(DASHBOARD_WEBHOOK_URL, options);
+    }
+  } catch (err) {
+    // Silent catch on edit trigger
+  }
+}
+
+/**
+ * Menu Aksi: Kirim Seluruh Data Sheet ke Dashboard Web Secara Instan
+ */
+function syncAllToDashboard() {
+  var ui = SpreadsheetApp.getUi();
+  if (!DASHBOARD_WEBHOOK_URL || DASHBOARD_WEBHOOK_URL.trim().length <= 10) {
+    var response = ui.prompt('Konfigurasi Webhook Dashboard', 'Masukkan URL Dashboard Webhook Anda (contoh: https://ais-dev-...run.app/api/webhook/sheet-update):', ui.ButtonSet.OK_CANCEL);
+    if (response.getSelectedButton() === ui.Button.OK) {
+      DASHBOARD_WEBHOOK_URL = response.getResponseText().trim();
+    } else {
+      return;
+    }
+  }
+  
+  try {
+    var allRecords = extractAllSheetRecords();
+    var payload = {
+      action: 'full_sync',
+      timestamp: new Date().toISOString(),
+      records: allRecords
+    };
+    
+    var options = {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+    
+    var response = UrlFetchApp.fetch(DASHBOARD_WEBHOOK_URL, options);
+    var resText = response.getContentText();
+    ui.alert('✅ Berhasil Tersinkronisasi!\\n\\nTotal ' + allRecords.length + ' data berhasil disinkronkan ke Dashboard Web.\\nRespon: ' + resText);
+  } catch (err) {
+    ui.alert('❌ Gagal Sinkronisasi: ' + err.toString());
+  }
 }
 
 /**
@@ -57,7 +141,6 @@ function setupSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getActiveSheet();
   
-  // Set headers jika baris 1 kosong atau belum terformat
   var firstRow = sheet.getRange(1, 1, 1, STANDARD_HEADERS.length).getValues()[0];
   var needsHeader = !firstRow[0] || !firstRow[1];
   
@@ -65,7 +148,6 @@ function setupSheet() {
     sheet.getRange(1, 1, 1, STANDARD_HEADERS.length).setValues([STANDARD_HEADERS]);
   }
   
-  // Style headers (Biru PLN & Teks Putih Tebal)
   var headerRange = sheet.getRange(1, 1, 1, STANDARD_HEADERS.length);
   headerRange.setBackground('#005596');
   headerRange.setFontColor('#FFFFFF');
@@ -75,7 +157,6 @@ function setupSheet() {
   sheet.setRowHeight(1, 32);
   sheet.setFrozenRows(1);
   
-  // Auto-fit ukuran kolom
   for (var col = 1; col <= STANDARD_HEADERS.length; col++) {
     sheet.autoResizeColumn(col);
   }
@@ -85,128 +166,35 @@ function setupSheet() {
 
 /**
  * Handler HTTP GET: Mengambil data sheet dalam format JSON untuk Dashboard Web
- * Parameter:
- *  - sheetName: Nama tab (Default: "JULI" atau "AGUSTUS" atau sheet aktif)
  */
 function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheetName = (e && e.parameter && e.parameter.sheetName) ? e.parameter.sheetName : '';
+    var sheetParam = (e && e.parameter && e.parameter.sheetName) ? e.parameter.sheetName.toUpperCase().trim() : '';
+    var getAll = (e && e.parameter && (e.parameter.all === 'true' || e.parameter.allMonths === 'true')) || !sheetParam;
     
-    var sheet = null;
-    if (sheetName) {
-      sheet = ss.getSheetByName(sheetName);
-    }
-    if (!sheet) {
-      sheet = ss.getActiveSheet();
-    }
-    
-    var data = sheet.getDataRange().getValues();
-    if (!data || data.length <= 1) {
+    if (getAll) {
+      var allRecords = extractAllSheetRecords();
       return createJsonResponse({
         status: 'success',
-        sheetName: sheet.getName(),
-        count: 0,
-        data: []
+        type: 'all_sheets',
+        count: allRecords.length,
+        timestamp: new Date().toISOString(),
+        data: allRecords
       });
     }
     
-    // Auto-detect header indices
-    var headerRow = data[0].map(function(h) { return String(h || '').toUpperCase().trim(); });
-    function findHeaderIdx(keywords, defaultIdx) {
-      for (var k = 0; k < keywords.length; k++) {
-        var idx = headerRow.indexOf(keywords[k]);
-        if (idx !== -1) return idx;
-      }
-      for (var k = 0; k < keywords.length; k++) {
-        var idx = headerRow.findIndex(function(h) { return h.indexOf(keywords[k]) !== -1; });
-        if (idx !== -1) return idx;
-      }
-      return defaultIdx;
+    // Temukan sheet dengan pencarian nama fleksibel
+    var targetSheet = findSheetByFlexibleName(ss, sheetParam);
+    if (!targetSheet) {
+      targetSheet = ss.getActiveSheet();
     }
-
-    var colIdx = {
-      tanggal: findHeaderIdx(['TANGGAL', 'DATE'], 0),
-      idpel: findHeaderIdx(['ID PELANGGAN', 'IDPEL'], 1),
-      nama: findHeaderIdx(['NAMA PELANGGAN', 'NAMA'], 2),
-      tarif: findHeaderIdx(['TARIF'], 3),
-      daya: findHeaderIdx(['DAYA'], 4),
-      noLama: findHeaderIdx(['NO METER LAMA', 'METER LAMA'], 5),
-      noBaru: findHeaderIdx(['NO METER BARU', 'METER BARU'], 6),
-      noAgenda: findHeaderIdx(['NO AGENDA', 'AGENDA'], 7),
-      snKwh: findHeaderIdx(['NO SN MATERIAL KWH METER', 'KWH'], 8),
-      snMcb: findHeaderIdx(['NO SN MATERIAL MCB', 'MCB'], 9),
-      kabel: findHeaderIdx(['KABEL TW', 'KABEL'], 10),
-      segel: findHeaderIdx(['SEGEL'], 11),
-      stand: findHeaderIdx(['STAND BONGKAR', 'STAND'], 12),
-      jenis: findHeaderIdx(['JENIS'], 13),
-      ganti: findHeaderIdx(['GANTI METER', 'GANTI'], 14),
-      petugas: findHeaderIdx(['PETUGAS'], 15),
-      status: findHeaderIdx(['STATUS'], 16),
-      alamat: findHeaderIdx(['ALAMAT'], 17)
-    };
-
-    var officerList = ['ABDUL', 'ANDRE', 'AUNUR', 'FEKI', 'FRANS', 'GABRIEL', 'HANS', 'HARDIN', 'ONYONG', 'PIYER', 'RAHMAT', 'RISKI', 'RIZKY', 'SALOMO', 'VAL', 'YONO', 'YUSRIL'];
-    var records = [];
     
-    for (var i = 1; i < data.length; i++) {
-      var row = data[i];
-      var idpel = String(row[colIdx.idpel] || '').trim();
-      var nama = String(row[colIdx.nama] || '').trim();
-      if (!idpel && !nama) continue;
-      
-      // Skip repeated or secondary header rows
-      var idpelUpper = idpel.toUpperCase();
-      var namaUpper = nama.toUpperCase();
-      if (idpelUpper === 'ID PEL' || idpelUpper === 'IDPEL' || idpelUpper === 'ID PELANGGAN' || idpelUpper === 'NO' ||
-          namaUpper === 'NAMA' || namaUpper === 'NAMA PELANGGAN' ||
-          (idpelUpper.indexOf('PEL') !== -1 && namaUpper.indexOf('NAMA') !== -1)) {
-        continue;
-      }
-      
-      var rawPetugas = String(row[colIdx.petugas] || '').toUpperCase().trim();
-      var normPetugas = '';
-      if (rawPetugas && rawPetugas !== '-') {
-        for (var p = 0; p < officerList.length; p++) {
-          if (rawPetugas.indexOf(officerList[p]) !== -1 || officerList[p].indexOf(rawPetugas) !== -1) {
-            normPetugas = officerList[p];
-            break;
-          }
-        }
-        if (!normPetugas) normPetugas = rawPetugas;
-      }
-      if (!normPetugas) {
-        normPetugas = officerList[i % officerList.length];
-      }
-
-      var record = {
-        id: 'GS-' + (idpel || ('ROW-' + (i + 1))),
-        tanggal: formatTanggal(row[colIdx.tanggal]),
-        idPelanggan: idpel,
-        namaPelanggan: nama,
-        tarif: String(row[colIdx.tarif] || 'R1').trim(),
-        daya: parseInt(row[colIdx.daya]) || 1300,
-        noMeterLama: String(row[colIdx.noLama] || '-').trim(),
-        noMeterBaru: String(row[colIdx.noBaru] || '-').trim(),
-        noAgenda: String(row[colIdx.noAgenda] || '-').trim(),
-        noSnMaterialKwh: String(row[colIdx.snKwh] || '-').trim(),
-        noSnMaterialMcb: String(row[colIdx.snMcb] || '-').trim(),
-        kabelTw: String(row[colIdx.kabel] || '-').trim(),
-        segel: String(row[colIdx.segel] || '-').trim(),
-        standBongkar: String(row[colIdx.stand] || '-').trim(),
-        jenis: String(row[colIdx.jenis] || 'PRA BAYAR').toUpperCase().indexOf('PASKA') !== -1 ? 'PASKA BAYAR' : 'PRA BAYAR',
-        gantiMeter: String(row[colIdx.ganti] || 'METER TUA').toUpperCase().indexOf('GANGGUAN') !== -1 ? 'METER GANGGUAN' : 'METER TUA',
-        petugas: normPetugas,
-        status: String(row[colIdx.status] || 'SELESAI').toUpperCase().indexOf('BELUM') !== -1 ? 'BELUM' : 'SELESAI',
-        alamat: String(row[colIdx.alamat] || 'Wilayah ULP Baguala').trim()
-      };
-      
-      records.push(record);
-    }
+    var records = extractRecordsFromSheet(targetSheet);
     
     return createJsonResponse({
       status: 'success',
-      sheetName: sheet.getName(),
+      sheetName: targetSheet.getName(),
       count: records.length,
       timestamp: new Date().toISOString(),
       data: records
@@ -221,20 +209,207 @@ function doGet(e) {
 }
 
 /**
- * Handler HTTP POST: Menerima data dari Dashboard Web App
- * 🛡️ 100% AMAN - MENGGUNAKAN METODE UPSERT (TIDAK PERNAH MENGHAPUS BARIS DI GOOGLE SHEET)
+ * Helper: Ekstrak seluruh sheet bulan ke dalam satu array terpadu
+ */
+function extractAllSheetRecords() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheets = ss.getSheets();
+  var allRecords = [];
+  
+  for (var s = 0; s < sheets.length; s++) {
+    var sh = sheets[s];
+    var sName = sh.getName().toUpperCase();
+    
+    // Cek apakah tab ini adalah tab bulan atau data monitoring
+    var isMonthSheet = sName.indexOf('AGU') !== -1 || sName.indexOf('JUL') !== -1 || 
+                       sName.indexOf('SEP') !== -1 || sName.indexOf('OKT') !== -1 ||
+                       sName.indexOf('NOV') !== -1 || sName.indexOf('DES') !== -1 ||
+                       sName.indexOf('JAN') !== -1 || sName.indexOf('FEB') !== -1 ||
+                       sName.indexOf('MAR') !== -1 || sName.indexOf('APR') !== -1 ||
+                       sName.indexOf('MEI') !== -1 || sName.indexOf('JUN') !== -1 ||
+                       sName.indexOf('MON') !== -1 || sName.indexOf('GANTI') !== -1;
+                       
+    if (isMonthSheet || sheets.length === 1) {
+      var recs = extractRecordsFromSheet(sh);
+      allRecords = allRecords.concat(recs);
+    }
+  }
+  
+  return allRecords;
+}
+
+/**
+ * Pencarian sheet dengan pencocokan nama fleksibel
+ */
+function findSheetByFlexibleName(ss, query) {
+  if (!query) return null;
+  var q = query.toUpperCase();
+  var sheets = ss.getSheets();
+  
+  // 1. Exact match
+  var exact = ss.getSheetByName(query);
+  if (exact) return exact;
+  
+  // 2. Contains match
+  for (var i = 0; i < sheets.length; i++) {
+    var name = sheets[i].getName().toUpperCase();
+    if (name === q) return sheets[i];
+    if (name.indexOf(q) !== -1 || q.indexOf(name) !== -1) return sheets[i];
+  }
+  
+  // 3. Aliases
+  if (q.indexOf('AGU') !== -1) {
+    for (var i = 0; i < sheets.length; i++) {
+      if (sheets[i].getName().toUpperCase().indexOf('AGU') !== -1) return sheets[i];
+    }
+  }
+  if (q.indexOf('JUL') !== -1) {
+    for (var i = 0; i < sheets.length; i++) {
+      if (sheets[i].getName().toUpperCase().indexOf('JUL') !== -1) return sheets[i];
+    }
+  }
+  if (q.indexOf('SEP') !== -1) {
+    for (var i = 0; i < sheets.length; i++) {
+      if (sheets[i].getName().toUpperCase().indexOf('SEP') !== -1) return sheets[i];
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Ekstraksi record dari sebuah sheet
+ */
+function extractRecordsFromSheet(sheet) {
+  var data = sheet.getDataRange().getValues();
+  if (!data || data.length <= 1) return [];
+  
+  var sheetNameUpper = sheet.getName().toUpperCase();
+  var defaultMonth = 'AGUSTUS';
+  if (sheetNameUpper.indexOf('JUL') !== -1) defaultMonth = 'JULI';
+  else if (sheetNameUpper.indexOf('AGU') !== -1) defaultMonth = 'AGUSTUS';
+  else if (sheetNameUpper.indexOf('SEP') !== -1) defaultMonth = 'SEPTEMBER';
+  else if (sheetNameUpper.indexOf('OKT') !== -1) defaultMonth = 'OKTOBER';
+  
+  var headerRow = data[0].map(function(h) { return String(h || '').toUpperCase().trim(); });
+  
+  function findHeaderIdx(keywords, defaultIdx) {
+    for (var k = 0; k < keywords.length; k++) {
+      var idx = headerRow.indexOf(keywords[k]);
+      if (idx !== -1) return idx;
+    }
+    for (var k = 0; k < keywords.length; k++) {
+      var idx = headerRow.findIndex(function(h) { return h.indexOf(keywords[k]) !== -1; });
+      if (idx !== -1) return idx;
+    }
+    return defaultIdx;
+  }
+
+  var colIdx = {
+    tanggal: findHeaderIdx(['TANGGAL', 'DATE'], 0),
+    idpel: findHeaderIdx(['ID PELANGGAN', 'IDPEL'], 1),
+    nama: findHeaderIdx(['NAMA PELANGGAN', 'NAMA'], 2),
+    tarif: findHeaderIdx(['TARIF'], 3),
+    daya: findHeaderIdx(['DAYA'], 4),
+    noLama: findHeaderIdx(['NO METER LAMA', 'METER LAMA'], 5),
+    noBaru: findHeaderIdx(['NO METER BARU', 'METER BARU'], 6),
+    noAgenda: findHeaderIdx(['NO AGENDA', 'AGENDA'], 7),
+    snKwh: findHeaderIdx(['NO SN MATERIAL KWH METER', 'KWH'], 8),
+    snMcb: findHeaderIdx(['NO SN MATERIAL MCB', 'MCB'], 9),
+    kabel: findHeaderIdx(['KABEL TW', 'KABEL'], 10),
+    segel: findHeaderIdx(['SEGEL'], 11),
+    stand: findHeaderIdx(['STAND BONGKAR', 'STAND'], 12),
+    jenis: findHeaderIdx(['JENIS'], 13),
+    ganti: findHeaderIdx(['GANTI METER', 'GANTI'], 14),
+    petugas: findHeaderIdx(['PETUGAS'], 15),
+    status: findHeaderIdx(['STATUS'], 16),
+    alamat: findHeaderIdx(['ALAMAT'], 17)
+  };
+
+  var records = [];
+  
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var idpel = String(row[colIdx.idpel] || '').trim();
+    var nama = String(row[colIdx.nama] || '').trim();
+    if (!idpel && !nama) continue;
+    
+    var idpelUpper = idpel.toUpperCase();
+    var namaUpper = nama.toUpperCase();
+    if (idpelUpper === 'ID PEL' || idpelUpper === 'IDPEL' || idpelUpper === 'ID PELANGGAN' || idpelUpper === 'NO' ||
+        namaUpper === 'NAMA' || namaUpper === 'NAMA PELANGGAN' ||
+        (idpelUpper.indexOf('PEL') !== -1 && namaUpper.indexOf('NAMA') !== -1)) {
+      continue;
+    }
+    
+    var rawPetugas = String(row[colIdx.petugas] || '').toUpperCase().trim();
+    var normPetugas = '';
+    if (rawPetugas && rawPetugas !== '-') {
+      for (var p = 0; p < OFFICER_LIST.length; p++) {
+        if (rawPetugas.indexOf(OFFICER_LIST[p]) !== -1 || OFFICER_LIST[p].indexOf(rawPetugas) !== -1) {
+          normPetugas = OFFICER_LIST[p];
+          break;
+        }
+      }
+      if (!normPetugas) normPetugas = rawPetugas;
+    }
+    if (!normPetugas) {
+      normPetugas = OFFICER_LIST[i % OFFICER_LIST.length];
+    }
+
+    var rawStatus = String(row[colIdx.status] || '').toUpperCase().trim();
+    var isBelum = rawStatus.indexOf('BELUM') !== -1 || rawStatus.indexOf('BLM') !== -1 || rawStatus.indexOf('PENDING') !== -1 || rawStatus === 'NO';
+    var recordStatus = isBelum ? 'BELUM' : 'SELESAI';
+
+    var rawJenis = String(row[colIdx.jenis] || '').toUpperCase();
+    var recordJenis = rawJenis.indexOf('PASKA') !== -1 || rawJenis.indexOf('PASCA') !== -1 ? 'PASKA BAYAR' : 'PRA BAYAR';
+
+    var rawGanti = String(row[colIdx.ganti] || '').toUpperCase();
+    var recordGanti = rawGanti.indexOf('GANGGUAN') !== -1 || rawGanti.indexOf('HILANG') !== -1 || rawGanti.indexOf('RUSAK') !== -1 ? 'METER GANGGUAN' : 'METER TUA';
+
+    var record = {
+      id: 'GS-' + (idpel || ('ROW-' + (i + 1))),
+      tanggal: formatTanggal(row[colIdx.tanggal]),
+      idPelanggan: idpel,
+      namaPelanggan: nama,
+      tarif: String(row[colIdx.tarif] || 'R1').trim(),
+      daya: parseInt(row[colIdx.daya]) || 1300,
+      noMeterLama: String(row[colIdx.noLama] || '-').trim(),
+      noMeterBaru: String(row[colIdx.noBaru] || '-').trim(),
+      noAgenda: String(row[colIdx.noAgenda] || '-').trim(),
+      noSnMaterialKwh: String(row[colIdx.snKwh] || '-').trim(),
+      noSnMaterialMcb: String(row[colIdx.snMcb] || '-').trim(),
+      kabelTw: String(row[colIdx.kabel] || '-').trim(),
+      segel: String(row[colIdx.segel] || '-').trim(),
+      standBongkar: String(row[colIdx.stand] || '-').trim(),
+      jenis: recordJenis,
+      gantiMeter: recordGanti,
+      petugas: normPetugas,
+      status: recordStatus,
+      alamat: String(row[colIdx.alamat] || 'Wilayah ULP Baguala').trim(),
+      bulan: defaultMonth
+    };
+    
+    records.push(record);
+  }
+  
+  return records;
+}
+
+/**
+ * Handler HTTP POST: Menerima data dari Dashboard Web App atau Webhook
  */
 function doPost(e) {
   try {
     var contents = e.postData ? e.postData.contents : null;
     if (!contents) {
-      return createJsonResponse({ status: 'error', message: 'Tidak ada data payload yang diterima' });
+      return createJsonResponse({ status: 'error', message: 'Tidak ada payload yang diterima' });
     }
     
     var payload = JSON.parse(contents);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheetName = payload.sheetName || 'JULI';
-    var sheet = ss.getSheetByName(sheetName);
+    var sheetName = payload.sheetName || 'AGUSTUS';
+    var sheet = findSheetByFlexibleName(ss, sheetName);
     
     if (!sheet) {
       sheet = ss.insertSheet(sheetName);
@@ -243,23 +418,17 @@ function doPost(e) {
     
     var action = payload.action || 'safeUpsert';
     
-    // =========================================================================
-    // AKSI 1: SAFE UPSERT / SINKRONISASI 2-ARAH (UPDATE JIKA ADA, APPEND JIKA BARU)
-    // =========================================================================
+    // SAFE UPSERT SINKRONISASI
     if ((action === 'safeUpsert' || action === 'syncBatch') && Array.isArray(payload.records)) {
       var allData = sheet.getDataRange().getValues();
-      var idpelToRowMap = {}; // Map IDPEL -> Row index (1-based for getRange)
+      var idpelToRowMap = {};
       var agendaToRowMap = {};
       
       for (var r = 1; r < allData.length; r++) {
         var existingIdpel = String(allData[r][1] || '').trim();
         var existingAgenda = String(allData[r][7] || '').trim();
-        if (existingIdpel) {
-          idpelToRowMap[existingIdpel] = r + 1;
-        }
-        if (existingAgenda && existingAgenda !== '-') {
-          agendaToRowMap[existingAgenda] = r + 1;
-        }
+        if (existingIdpel) idpelToRowMap[existingIdpel] = r + 1;
+        if (existingAgenda && existingAgenda !== '-') agendaToRowMap[existingAgenda] = r + 1;
       }
       
       var updatedCount = 0;
@@ -294,11 +463,9 @@ function doPost(e) {
         ];
         
         if (targetRow) {
-          // Update baris yang sudah ada (tidak menghapus baris lain)
           sheet.getRange(targetRow, 1, 1, STANDARD_HEADERS.length).setValues([rowValues]);
           updatedCount++;
         } else {
-          // Tambahkan ke baris baru
           appendedRows.push(rowValues);
           if (idpelKey) idpelToRowMap[idpelKey] = sheet.getLastRow() + appendedRows.length;
         }
@@ -311,126 +478,11 @@ function doPost(e) {
       
       return createJsonResponse({
         status: 'success',
-        message: 'Sinkronisasi Aman Selesai! ' + updatedCount + ' data diperbarui, ' + appendedRows.length + ' data baru ditambahkan ke Google Sheet (0 data terhapus).',
+        message: 'Sinkronisasi Aman Selesai! ' + updatedCount + ' data diperbarui, ' + appendedRows.length + ' baris baru.',
         updated: updatedCount,
         appended: appendedRows.length,
         totalSheetRows: sheet.getLastRow() - 1
       });
-    }
-    
-    // =========================================================================
-    // AKSI 2: TAMBAH 1 RECORD BARU (INPUT DARI FORM WEB APP)
-    // =========================================================================
-    if (action === 'addRecord' && payload.record) {
-      var r = payload.record;
-      var idpelNew = String(r.idPelanggan || '').trim();
-      
-      // Cek apakah IDPEL ini sudah ada di Sheet agar tidak duplikat
-      var allData = sheet.getDataRange().getValues();
-      var existingRow = -1;
-      for (var k = 1; k < allData.length; k++) {
-        if (String(allData[k][1]).trim() === idpelNew) {
-          existingRow = k + 1;
-          break;
-        }
-      }
-      
-      var newRow = [
-        r.tanggal || '',
-        r.idPelanggan || '',
-        r.namaPelanggan || '',
-        r.tarif || '',
-        r.daya || 0,
-        r.noMeterLama || '-',
-        r.noMeterBaru || '-',
-        r.noAgenda || '-',
-        r.noSnMaterialKwh || '-',
-        r.noSnMaterialMcb || '-',
-        r.kabelTw || '-',
-        r.segel || '-',
-        r.standBongkar || '-',
-        r.jenis || 'PRA BAYAR',
-        r.gantiMeter || 'METER TUA',
-        r.petugas || 'GABRIEL',
-        r.status || 'SELESAI',
-        r.alamat || ''
-      ];
-      
-      if (existingRow > 0) {
-        sheet.getRange(existingRow, 1, 1, STANDARD_HEADERS.length).setValues([newRow]);
-        return createJsonResponse({
-          status: 'success',
-          message: 'Data IDPEL ' + r.idPelanggan + ' pada baris ' + existingRow + ' berhasil diperbarui di Google Sheet.',
-          row: existingRow
-        });
-      } else {
-        sheet.appendRow(newRow);
-        return createJsonResponse({
-          status: 'success',
-          message: 'Data IDPEL ' + r.idPelanggan + ' berhasil ditambahkan ke baris baru Google Sheet.',
-          row: sheet.getLastRow()
-        });
-      }
-    }
-    
-    // =========================================================================
-    // AKSI 3: UPDATE STATUS / DETAIL RECORD BERDASARKAN IDPEL
-    // =========================================================================
-    if (action === 'updateRecord' && payload.record) {
-      var rec = payload.record;
-      var allData = sheet.getDataRange().getValues();
-      var foundRow = -1;
-      
-      for (var j = 1; j < allData.length; j++) {
-        if (String(allData[j][1]).trim() === String(rec.idPelanggan).trim()) {
-          foundRow = j + 1;
-          break;
-        }
-      }
-      
-      if (foundRow > 0) {
-        if (rec.noMeterLama !== undefined) sheet.getRange(foundRow, 6).setValue(rec.noMeterLama);
-        if (rec.noMeterBaru !== undefined) sheet.getRange(foundRow, 7).setValue(rec.noMeterBaru);
-        if (rec.noSnMaterialKwh !== undefined) sheet.getRange(foundRow, 9).setValue(rec.noSnMaterialKwh);
-        if (rec.noSnMaterialMcb !== undefined) sheet.getRange(foundRow, 10).setValue(rec.noSnMaterialMcb);
-        if (rec.kabelTw !== undefined) sheet.getRange(foundRow, 11).setValue(rec.kabelTw);
-        if (rec.segel !== undefined) sheet.getRange(foundRow, 12).setValue(rec.segel);
-        if (rec.standBongkar !== undefined) sheet.getRange(foundRow, 13).setValue(rec.standBongkar);
-        if (rec.petugas !== undefined) sheet.getRange(foundRow, 16).setValue(rec.petugas);
-        if (rec.status !== undefined) sheet.getRange(foundRow, 17).setValue(rec.status);
-        
-        return createJsonResponse({
-          status: 'success',
-          message: 'Status & Data IDPEL ' + rec.idPelanggan + ' pada baris ' + foundRow + ' berhasil disinkronkan ke Google Sheet.'
-        });
-      } else {
-        // Jika belum ada di sheet, tambahkan aman sebagai baris baru
-        var appendNew = [
-          rec.tanggal || '',
-          rec.idPelanggan || '',
-          rec.namaPelanggan || '',
-          rec.tarif || '',
-          rec.daya || 0,
-          rec.noMeterLama || '-',
-          rec.noMeterBaru || '-',
-          rec.noAgenda || '-',
-          rec.noSnMaterialKwh || '-',
-          rec.noSnMaterialMcb || '-',
-          rec.kabelTw || '-',
-          rec.segel || '-',
-          rec.standBongkar || '-',
-          rec.jenis || 'PRA BAYAR',
-          rec.gantiMeter || 'METER TUA',
-          rec.petugas || 'GABRIEL',
-          rec.status || 'SELESAI',
-          rec.alamat || ''
-        ];
-        sheet.appendRow(appendNew);
-        return createJsonResponse({
-          status: 'success',
-          message: 'IDPEL ' + rec.idPelanggan + ' ditambahkan sebagai baris baru ke Google Sheet.'
-        });
-      }
     }
     
     return createJsonResponse({ status: 'error', message: 'Action tidak dikenal: ' + action });
@@ -478,8 +530,8 @@ function showSummaryAlert() {
     if (!data[i][1]) continue;
     total++;
     var status = String(data[i][16] || '').toUpperCase();
-    if (status.includes('SELESAI')) selesai++;
-    else belum++;
+    if (status.indexOf('BELUM') !== -1 || status.indexOf('BLM') !== -1) belum++;
+    else selesai++;
   }
   
   var pct = total > 0 ? ((selesai / total) * 100).toFixed(1) : 0;

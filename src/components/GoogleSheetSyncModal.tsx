@@ -48,16 +48,72 @@ export function GoogleSheetSyncModal({
   const [sheetTab, setSheetTab] = useState(config.selectedSheetTab || getRealCurrentMonthInfo().id);
   const [webAppUrl, setWebAppUrl] = useState(config.webAppUrl || 'https://script.google.com/macros/s/AKfycbxo4wsaicmVoaqSZj9Z7wOErdolaX80LNhjDteG8ZRQsir4Jm4jmss6bza-ZkhSZe5SLA/exec');
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isPushing, setIsPushing] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const [isFullSyncing, setIsFullSyncing] = useState(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState<{ type: 'success' | 'error'; text: string; details?: string } | null>(null);
+  const [diagnosticResult, setDiagnosticResult] = useState<any>(null);
   const [csvInput, setCsvInput] = useState('');
   const [copiedScript, setCopiedScript] = useState(false);
+  const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [activeTab, setActiveTab] = useState<'cloud' | 'script' | 'csv' | 'export'>('cloud');
+
+  const webhookEndpoint = typeof window !== 'undefined' 
+    ? `${window.location.origin}/api/webhook/sheet-update` 
+    : '/api/webhook/sheet-update';
 
   if (!isOpen) return null;
 
-  // 1. SINKRONISASI BACA-SAHAJA (PULL + MERGE SAFE READ-ONLY)
+  // 1. Uji Koneksi & Diagnostik
+  const handleTestConnection = async () => {
+    setIsTesting(true);
+    setDiagnosticResult(null);
+    setSyncStatusMsg(null);
+
+    try {
+      const match = sheetUrl.trim().match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+      const extractedSheetId = match ? match[1] : config.sheetId;
+
+      const testCfg = {
+        ...config,
+        sheetUrl: sheetUrl.trim(),
+        sheetId: extractedSheetId,
+        webAppUrl: webAppUrl.trim(),
+        selectedSheetTab: sheetTab
+      };
+
+      const res = await fetch('/api/test-sheet-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: testCfg })
+      });
+
+      const data = await res.json();
+      setDiagnosticResult(data.diagnostics);
+
+      if (data.success) {
+        setSyncStatusMsg({
+          type: 'success',
+          text: '✅ Koneksi Google Sheet Terverifikasi Aktif!',
+          details: 'Dashboard dapat membaca data langsung dari Google Sheet Anda.'
+        });
+      } else {
+        setSyncStatusMsg({
+          type: 'error',
+          text: '⚠️ Belum Dapat Mengakses Sheet Secara Langsung',
+          details: 'Periksa URL Web App atau pastikan Google Sheet di-share ke "Siapa saja yang memiliki link (Viewer/Pengakses Lihat)".'
+        });
+      }
+    } catch (err: any) {
+      setSyncStatusMsg({
+        type: 'error',
+        text: 'Gagal melakukan tes koneksi: ' + (err.message || 'Network error')
+      });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  // 2. SINKRONISASI BACA-SAHAJA (PULL + MERGE SAFE READ-ONLY)
   const handleFullTwoWaySync = async () => {
     setIsFullSyncing(true);
     setSyncStatusMsg(null);
@@ -78,7 +134,7 @@ export function GoogleSheetSyncModal({
     }
   };
 
-  // 2. Tarik Data dari Google Sheet (Pull Aman - Multi-Device Server Sync)
+  // 3. Tarik Data dari Google Sheet (Pull Aman - Multi-Device Server Sync)
   const handlePullFromSheet = async () => {
     setIsSyncing(true);
     setSyncStatusMsg(null);
@@ -121,15 +177,6 @@ export function GoogleSheetSyncModal({
     }
   };
 
-  // 3. Info Proteksi Google Sheet
-  const handlePushToSheet = async () => {
-    setSyncStatusMsg({
-      type: 'success',
-      text: '🛡️ Mode Proteksi Read-Only Aktif!',
-      details: 'Aplikasi dikonfigurasi untuk HANYA MEMBACA data dari Google Sheet. Data di file Google Sheet Anda dijamin 100% aman dan tidak akan diubah atau ditimpa.'
-    });
-  };
-
   const handleResetToCanonical = () => {
     const canonical = resetToDefaultRecords();
     updateRecords(canonical);
@@ -144,6 +191,12 @@ export function GoogleSheetSyncModal({
     navigator.clipboard.writeText(GOOGLE_APPS_SCRIPT_CODE);
     setCopiedScript(true);
     setTimeout(() => setCopiedScript(false), 3000);
+  };
+
+  const handleCopyWebhook = () => {
+    navigator.clipboard.writeText(webhookEndpoint);
+    setCopiedWebhook(true);
+    setTimeout(() => setCopiedWebhook(false), 3000);
   };
 
   const handleImportCsv = () => {
@@ -359,6 +412,30 @@ export function GoogleSheetSyncModal({
                 />
               </div>
 
+              {/* Real-Time Webhook Endpoint for Instant Auto-Sync */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-amber-500" />
+                    URL Webhook Real-Time (Otomatis &amp; Langsung Terupdate Saat Sheet Diedit)
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyWebhook}
+                    className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold rounded-lg transition flex items-center gap-1 cursor-pointer"
+                  >
+                    {copiedWebhook ? <Check className="w-3 h-3 text-emerald-300" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedWebhook ? 'Tersalin!' : 'Salin URL Webhook'}</span>
+                  </button>
+                </div>
+                <div className="bg-white border border-blue-200 rounded-lg p-2 font-mono text-[11px] text-blue-800 break-all select-all">
+                  {webhookEndpoint}
+                </div>
+                <p className="text-[10px] text-slate-600 leading-relaxed">
+                  💡 <b>Cara Kerja Auto-Sync Langsung:</b> Setiap Anda mengubah status ganti meter di Google Sheet, script secara instan mengirim data ke Dashboard tanpa perlu refresh atau reload. Masukkan URL Webhook ini pada variabel <code className="bg-blue-100 text-blue-900 px-1 rounded">DASHBOARD_WEBHOOK_URL</code> di Apps Script Anda.
+                </p>
+              </div>
+
               {/* Sheet URL */}
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-1">
@@ -406,6 +483,32 @@ export function GoogleSheetSyncModal({
                 </div>
               </div>
 
+              {/* Diagnostic Box if test was run */}
+              {diagnosticResult && (
+                <div className="p-3 bg-slate-100 border border-slate-300 rounded-xl space-y-2 text-xs">
+                  <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 text-blue-600" />
+                    Hasil Uji Diagnostik Koneksi:
+                  </div>
+                  {diagnosticResult.webApp && (
+                    <div className="text-[11px] flex items-start gap-2 bg-white p-2 rounded border border-slate-200">
+                      <span className={`w-2 h-2 rounded-full mt-1 shrink-0 ${diagnosticResult.webApp.success ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                      <div>
+                        <b>Google Apps Script Web App:</b> {diagnosticResult.webApp.message}
+                      </div>
+                    </div>
+                  )}
+                  {diagnosticResult.gviz && (
+                    <div className="text-[11px] flex items-start gap-2 bg-white p-2 rounded border border-slate-200">
+                      <span className={`w-2 h-2 rounded-full mt-1 shrink-0 ${diagnosticResult.gviz.success ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                      <div>
+                        <b>Direct Google Sheet Feed:</b> {diagnosticResult.gviz.message}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* ACTION BUTTONS */}
               <div className="pt-2 space-y-2.5">
                 {/* Master Safe Read-Only Sync Button */}
@@ -419,11 +522,22 @@ export function GoogleSheetSyncModal({
                   <span>
                     {isFullSyncing 
                       ? 'Sedang Menarik Data dari Google Sheet...' 
-                      : '⚡ Sinkronkan & Tarik Data dari Google Sheet (Safe Read-Only)'}
+                      : '⚡ Sinkronkan & Tarik Data dari Google Sheet Sekarang'}
                   </span>
                 </button>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {/* Test Connection */}
+                  <button
+                    type="button"
+                    onClick={handleTestConnection}
+                    disabled={isTesting}
+                    className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition disabled:opacity-50 cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 text-blue-600 ${isTesting ? 'animate-spin' : ''}`} />
+                    <span>{isTesting ? 'Menguji...' : '🔍 Uji Koneksi Sheet'}</span>
+                  </button>
+
                   {/* Pull Only */}
                   <button
                     type="button"
@@ -432,7 +546,7 @@ export function GoogleSheetSyncModal({
                     className="py-2.5 px-3 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition disabled:opacity-50 cursor-pointer"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                    <span>{isSyncing ? 'Menarik...' : '📥 Tarik Data dari Sheet (Read-Only)'}</span>
+                    <span>{isSyncing ? 'Menarik...' : '📥 Tarik Data Tab'}</span>
                   </button>
 
                   {/* Reset to Verified Data */}
@@ -443,7 +557,7 @@ export function GoogleSheetSyncModal({
                     title="Muat ulang dan sinkronkan data (Agustus: 331 Selesai / 0 Belum)"
                   >
                     <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-                    <span>🔄 Refresh Master Data (100% Selesai)</span>
+                    <span>🔄 Refresh Master</span>
                   </button>
                 </div>
               </div>
