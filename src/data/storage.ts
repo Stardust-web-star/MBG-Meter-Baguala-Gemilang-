@@ -1,5 +1,6 @@
 import { MeterRecord, UserAccount, GoogleSheetConfig, ActivityLog, PetugasName } from '../types';
-import { generateInitialRecords, DEFAULT_USERS, PETUGAS_LIST } from './mockData';
+import { generateInitialRecords, DEFAULT_USERS, PETUGAS_LIST, normalizeOfficerName } from './mockData';
+export { normalizeOfficerName };
 import { normalizeMonthName } from '../utils/monthUtils';
 import { syncRecordsToFirestore, saveSingleRecordToFirestore } from '../lib/firebase';
 
@@ -660,15 +661,7 @@ export function parseCSVToRecords(csvText: string, targetMonth: string = 'SEPTEM
     if (!rawIdpel && !rawNama) continue;
 
     const rawPetugas = (cleanCols[idxPetugas] || '').toUpperCase().trim();
-    let matchedPetugas: PetugasName = 'GABRIEL';
-    const foundPetugas = PETUGAS_LIST.find(p => rawPetugas.includes(p) || p.includes(rawPetugas));
-    if (foundPetugas) {
-      matchedPetugas = foundPetugas;
-    } else if (rawPetugas && rawPetugas !== '-') {
-      matchedPetugas = rawPetugas as PetugasName;
-    } else {
-      matchedPetugas = PETUGAS_LIST[i % PETUGAS_LIST.length];
-    }
+    const matchedPetugas: PetugasName = normalizeOfficerName(rawPetugas);
 
     const idPel = rawIdpel || `411300${Math.floor(100000 + Math.random() * 900000)}`;
     const nama = rawNama || 'Pelanggan';
@@ -789,23 +782,113 @@ export function safeMergeRecords(sheetRecords: MeterRecord[], localRecords: Mete
   const allMerged = [...mergedForTargetMonth, ...otherMonthsLocalRecords];
 
   // 5. Final normalisasi bulan dan petugas
-  return allMerged.map((r, idx) => {
+  return allMerged.map((r) => {
     const month = normalizeMonthName(r.bulan, r.tanggal);
-
-    let normPetugas = (r.petugas || '').toUpperCase().trim();
-    const matched = PETUGAS_LIST.find(p => normPetugas.includes(p) || p.includes(normPetugas));
-    if (matched) {
-      normPetugas = matched;
-    } else if (!normPetugas || normPetugas === '-') {
-      normPetugas = PETUGAS_LIST[idx % PETUGAS_LIST.length];
-    }
+    const normPetugas = normalizeOfficerName(r.petugas);
 
     return {
       ...r,
       bulan: month,
-      petugas: normPetugas as PetugasName
+      petugas: normPetugas
     };
   });
+}
+
+/**
+ * Calibrate or fine-tune officer target & realization counts for a specific month
+ */
+export function calibrateOfficerStats(
+  records: MeterRecord[],
+  month: string,
+  officerName: PetugasName,
+  targetSelesai: number,
+  targetBelum: number
+): MeterRecord[] {
+  const canonicalMonth = normalizeMonthName(month);
+  const normalizedOfficer = normalizeOfficerName(officerName);
+
+  // Separate records for other months or other officers
+  const otherRecords = records.filter(r => {
+    const rMonth = normalizeMonthName(r.bulan, r.tanggal);
+    const rOfficer = normalizeOfficerName(r.petugas);
+    return !(rMonth === canonicalMonth && rOfficer === normalizedOfficer);
+  });
+
+  // Existing records for this officer in this month
+  const targetRecords = records.filter(r => {
+    const rMonth = normalizeMonthName(r.bulan, r.tanggal);
+    const rOfficer = normalizeOfficerName(r.petugas);
+    return rMonth === canonicalMonth && rOfficer === normalizedOfficer;
+  });
+
+  const updatedTargetRecords: MeterRecord[] = [];
+  const existingSelesai = targetRecords.filter(r => r.status === 'SELESAI');
+  const existingBelum = targetRecords.filter(r => r.status === 'BELUM');
+
+  // Adjust Selesai
+  for (let s = 0; s < targetSelesai; s++) {
+    if (s < existingSelesai.length) {
+      updatedTargetRecords.push(existingSelesai[s]);
+    } else {
+      const day = (s % 28) + 1;
+      const meterBaru = `86299${Math.floor(100000 + Math.random() * 900000)}`;
+      updatedTargetRecords.push({
+        id: `GM-${canonicalMonth.substring(0, 3)}-${Date.now().toString().slice(-4)}-${s}`,
+        tanggal: `${canonicalMonth} 2026 (Tgl ${day})`,
+        bulan: canonicalMonth,
+        idPelanggan: `411300${Math.floor(100000 + Math.random() * 900000)}`,
+        namaPelanggan: `Pelanggan Terganti (${normalizedOfficer})`,
+        tarif: 'R1T',
+        daya: 1300,
+        noMeterLama: `${Math.floor(32100000000 + Math.random() * 900000000)}`,
+        noMeterBaru: meterBaru,
+        noAgenda: `411300562609${Math.floor(100000 + Math.random() * 900000)}`,
+        noSnMaterialKwh: `PLN021900002240269${meterBaru.substring(2)}`,
+        noSnMaterialMcb: '-',
+        kabelTw: '-',
+        segel: '-',
+        standBongkar: '0',
+        jenis: 'PRA BAYAR',
+        gantiMeter: 'METER TUA',
+        petugas: normalizedOfficer,
+        status: 'SELESAI',
+        alamat: 'Wilayah ULP Baguala'
+      });
+    }
+  }
+
+  // Adjust Belum
+  for (let b = 0; b < targetBelum; b++) {
+    if (b < existingBelum.length) {
+      updatedTargetRecords.push(existingBelum[b]);
+    } else {
+      const day = (b % 15) + 1;
+      updatedTargetRecords.push({
+        id: `GM-${canonicalMonth.substring(0, 3)}-${Date.now().toString().slice(-4)}-BLM-${b}`,
+        tanggal: `${canonicalMonth} 2026 (Tgl ${day})`,
+        bulan: canonicalMonth,
+        idPelanggan: `411300${Math.floor(100000 + Math.random() * 900000)}`,
+        namaPelanggan: `Pelanggan Pending (${normalizedOfficer})`,
+        tarif: 'R1T',
+        daya: 1300,
+        noMeterLama: `${Math.floor(32100000000 + Math.random() * 900000000)}`,
+        noMeterBaru: '-',
+        noAgenda: `411300562609${Math.floor(100000 + Math.random() * 900000)}`,
+        noSnMaterialKwh: '-',
+        noSnMaterialMcb: '-',
+        kabelTw: '-',
+        segel: '-',
+        standBongkar: '-',
+        jenis: 'PRA BAYAR',
+        gantiMeter: 'METER GANGGUAN',
+        petugas: normalizedOfficer,
+        status: 'BELUM',
+        alamat: 'Wilayah ULP Baguala'
+      });
+    }
+  }
+
+  return [...otherRecords, ...updatedTargetRecords];
 }
 
 export async function syncAddRecordToSheetBackground(_record: MeterRecord, _config?: GoogleSheetConfig) {

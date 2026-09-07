@@ -11,6 +11,7 @@ export type PetugasName =
   | 'GABRIEL'
   | 'HANS'
   | 'HARDIN'
+  | 'NAKUL'
   | 'ONYONG'
   | 'PIYER'
   | 'RAHMAT'

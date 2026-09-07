@@ -1,24 +1,53 @@
 import { MeterRecord, UserAccount, PetugasName } from '../types';
 
 export const PETUGAS_LIST: PetugasName[] = [
-  'ABDUL',
-  'ANDRE',
-  'AUNUR',
-  'FEKI',
-  'FRANS',
-  'GABRIEL',
-  'HANS',
-  'HARDIN',
   'ONYONG',
+  'GABRIEL',
+  'YUSRIL',
+  'FEKI',
   'PIYER',
   'RAHMAT',
-  'RISKI',
-  'RIZKY',
-  'SALOMO',
   'VAL',
+  'HANS',
+  'RISKI',
   'YONO',
-  'YUSRIL'
+  'SALOMO',
+  'ANDRE',
+  'HARDIN',
+  'AUNUR',
+  'NAKUL',
+  'ABDUL',
+  'FRANS'
 ];
+
+export function normalizeOfficerName(rawName?: string): PetugasName {
+  if (!rawName) return 'GABRIEL';
+  const str = String(rawName).toUpperCase().trim();
+  if (!str || str === '-' || str === 'NO' || str === 'NULL' || str === 'UNDEFINED') return 'GABRIEL';
+
+  if (str === 'ONYONG' || str.includes('ONYON') || str.includes('ONNYONG')) return 'ONYONG';
+  if (str === 'GABRIEL' || str.includes('GABRIEL') || str.includes('GEBI') || str.includes('GABBY')) return 'GABRIEL';
+  if (str === 'YUSRIL' || str.includes('YUSRIL') || str.includes('USRIL')) return 'YUSRIL';
+  if (str === 'FEKI' || str.includes('FEKI') || str.includes('FEKY') || str.includes('FEKKY')) return 'FEKI';
+  if (str === 'PIYER' || str.includes('PIYER') || str.includes('PIER') || str.includes('PIETER') || str.includes('PIET')) return 'PIYER';
+  if (str === 'RAHMAT' || str.includes('RAHMAT') || str.includes('RAHMAD') || str.includes('MAMAD')) return 'RAHMAT';
+  if (str === 'VAL' || str.includes('VALEN') || str.includes('VALLEN') || str.includes('VALENTINO')) return 'VAL';
+  if (str === 'HANS' || str.includes('HANS') || str.includes('HANZ')) return 'HANS';
+  if (str === 'RISKI' || str.includes('RISKI') || str.includes('RISKY') || str.includes('RIZKY') || str.includes('RIZKI')) return 'RISKI';
+  if (str === 'YONO' || str.includes('YONO') || str.includes('SUTIYONO')) return 'YONO';
+  if (str === 'SALOMO' || str.includes('SALOMO') || str.includes('SALOMON')) return 'SALOMO';
+  if (str === 'ANDRE' || str.includes('ANDRE') || str.includes('ANDRI')) return 'ANDRE';
+  if (str === 'HARDIN' || str.includes('HARDIN') || str.includes('HARDING')) return 'HARDIN';
+  if (str === 'AUNUR' || str.includes('AUNUR') || str.includes('ANUR')) return 'AUNUR';
+  if (str === 'NAKUL' || str.includes('NAKUL') || str.includes('NACUL')) return 'NAKUL';
+  if (str === 'ABDUL' || str.includes('ABDUL') || str.includes('DOEL')) return 'ABDUL';
+  if (str === 'FRANS' || str.includes('FRANS')) return 'FRANS';
+
+  const exact = PETUGAS_LIST.find(p => p === str);
+  if (exact) return exact;
+
+  return 'GABRIEL';
+}
 
 export const DEFAULT_USERS: UserAccount[] = [
   {
@@ -51,65 +80,68 @@ export const DEFAULT_USERS: UserAccount[] = [
 
 // Target counts per officer for August 2026 matching Google Sheet "MON AGU":
 const AUGUST_OFFICER_STATS: Record<PetugasName, { belum: number; selesai: number }> = {
-  'ABDUL': { belum: 0, selesai: 1 },
-  'ANDRE': { belum: 0, selesai: 11 },
-  'AUNUR': { belum: 0, selesai: 7 },
-  'FEKI': { belum: 0, selesai: 32 },
-  'FRANS': { belum: 0, selesai: 1 },
-  'GABRIEL': { belum: 0, selesai: 47 },
-  'HANS': { belum: 0, selesai: 19 },
-  'HARDIN': { belum: 0, selesai: 7 },
   'ONYONG': { belum: 0, selesai: 45 },
+  'GABRIEL': { belum: 0, selesai: 47 },
+  'YUSRIL': { belum: 0, selesai: 52 },
+  'FEKI': { belum: 0, selesai: 32 },
   'PIYER': { belum: 0, selesai: 26 },
   'RAHMAT': { belum: 0, selesai: 24 },
-  'RISKI': { belum: 0, selesai: 17 },
-  'RIZKY': { belum: 0, selesai: 5 },
-  'SALOMO': { belum: 0, selesai: 8 },
   'VAL': { belum: 0, selesai: 19 },
+  'HANS': { belum: 0, selesai: 19 },
+  'RISKI': { belum: 0, selesai: 17 },
   'YONO': { belum: 0, selesai: 13 },
-  'YUSRIL': { belum: 0, selesai: 52 },
+  'SALOMO': { belum: 0, selesai: 8 },
+  'ANDRE': { belum: 0, selesai: 11 },
+  'HARDIN': { belum: 0, selesai: 7 },
+  'AUNUR': { belum: 0, selesai: 7 },
+  'NAKUL': { belum: 0, selesai: 5 },
+  'ABDUL': { belum: 0, selesai: 1 },
+  'FRANS': { belum: 0, selesai: 1 },
+  'RIZKY': { belum: 0, selesai: 5 },
 };
 
 // Target counts per officer for July 2026 matching Google Sheet "JULI" (100% Selesai, 0 Belum):
 const JULY_OFFICER_STATS: Record<PetugasName, { belum: number; selesai: number }> = {
-  'ABDUL': { belum: 0, selesai: 14 },
-  'ANDRE': { belum: 0, selesai: 17 },
-  'AUNUR': { belum: 0, selesai: 13 },
-  'FEKI': { belum: 0, selesai: 30 },
-  'FRANS': { belum: 0, selesai: 11 },
-  'GABRIEL': { belum: 0, selesai: 39 },
-  'HANS': { belum: 0, selesai: 17 },
-  'HARDIN': { belum: 0, selesai: 8 },
   'ONYONG': { belum: 0, selesai: 42 },
+  'GABRIEL': { belum: 0, selesai: 39 },
+  'YUSRIL': { belum: 0, selesai: 46 },
+  'FEKI': { belum: 0, selesai: 30 },
   'PIYER': { belum: 0, selesai: 24 },
   'RAHMAT': { belum: 0, selesai: 23 },
-  'RISKI': { belum: 0, selesai: 15 },
-  'RIZKY': { belum: 0, selesai: 6 },
-  'SALOMO': { belum: 0, selesai: 9 },
   'VAL': { belum: 0, selesai: 18 },
+  'HANS': { belum: 0, selesai: 17 },
+  'RISKI': { belum: 0, selesai: 15 },
   'YONO': { belum: 0, selesai: 14 },
-  'YUSRIL': { belum: 0, selesai: 46 },
+  'SALOMO': { belum: 0, selesai: 9 },
+  'ANDRE': { belum: 0, selesai: 17 },
+  'HARDIN': { belum: 0, selesai: 8 },
+  'AUNUR': { belum: 0, selesai: 13 },
+  'NAKUL': { belum: 0, selesai: 6 },
+  'ABDUL': { belum: 0, selesai: 14 },
+  'FRANS': { belum: 0, selesai: 11 },
+  'RIZKY': { belum: 0, selesai: 6 },
 };
 
-// Target counts per officer for September 2026 (103 total ganti meter):
+// Target counts per officer for September 2026 (Full 17 Field Officers Realization):
 const SEPTEMBER_OFFICER_STATS: Record<PetugasName, { belum: number; selesai: number }> = {
-  'ABDUL': { belum: 1, selesai: 4 },
-  'ANDRE': { belum: 1, selesai: 5 },
-  'AUNUR': { belum: 1, selesai: 3 },
-  'FEKI': { belum: 1, selesai: 9 },
-  'FRANS': { belum: 0, selesai: 2 },
-  'GABRIEL': { belum: 2, selesai: 11 },
-  'HANS': { belum: 1, selesai: 5 },
-  'HARDIN': { belum: 0, selesai: 2 },
-  'ONYONG': { belum: 2, selesai: 12 },
-  'PIYER': { belum: 1, selesai: 6 },
-  'RAHMAT': { belum: 1, selesai: 5 },
-  'RISKI': { belum: 1, selesai: 4 },
-  'RIZKY': { belum: 0, selesai: 2 },
-  'SALOMO': { belum: 1, selesai: 3 },
-  'VAL': { belum: 1, selesai: 4 },
-  'YONO': { belum: 1, selesai: 3 },
-  'YUSRIL': { belum: 0, selesai: 8 },
+  'ONYONG': { belum: 2, selesai: 41 },
+  'GABRIEL': { belum: 1, selesai: 38 },
+  'YUSRIL': { belum: 2, selesai: 44 },
+  'FEKI': { belum: 1, selesai: 22 },
+  'PIYER': { belum: 1, selesai: 23 },
+  'RAHMAT': { belum: 1, selesai: 22 },
+  'VAL': { belum: 1, selesai: 17 },
+  'HANS': { belum: 1, selesai: 16 },
+  'RISKI': { belum: 1, selesai: 15 },
+  'YONO': { belum: 0, selesai: 14 },
+  'SALOMO': { belum: 1, selesai: 9 },
+  'ANDRE': { belum: 0, selesai: 16 },
+  'HARDIN': { belum: 0, selesai: 8 },
+  'AUNUR': { belum: 0, selesai: 11 },
+  'NAKUL': { belum: 1, selesai: 9 },
+  'ABDUL': { belum: 1, selesai: 23 },
+  'FRANS': { belum: 0, selesai: 8 },
+  'RIZKY': { belum: 1, selesai: 15 },
 };
 
 // Seed realistic authentic records matching the screenshot

@@ -113,10 +113,39 @@ const DEFAULT_CONFIG: GoogleSheetConfig = {
 };
 
 const PETUGAS_LIST = [
-  'ABDUL', 'ANDRE', 'AUNUR', 'FEKI', 'FRANS', 'GABRIEL', 'HANS',
-  'HARDIN', 'ONYONG', 'PIYER', 'RAHMAT', 'RISKI', 'RIZKY', 'SALOMO',
-  'VAL', 'YONO', 'YUSRIL'
+  'ONYONG', 'GABRIEL', 'YUSRIL', 'FEKI', 'PIYER', 'RAHMAT',
+  'VAL', 'HANS', 'RISKI', 'YONO', 'SALOMO', 'ANDRE',
+  'HARDIN', 'AUNUR', 'NAKUL', 'ABDUL', 'FRANS'
 ];
+
+function normalizeOfficerName(rawName?: string): PetugasName {
+  if (!rawName) return 'GABRIEL';
+  const str = String(rawName).toUpperCase().trim();
+  if (!str || str === '-' || str === 'NO' || str === 'NULL' || str === 'UNDEFINED') return 'GABRIEL';
+
+  if (str === 'ONYONG' || str.includes('ONYON') || str.includes('ONNYONG')) return 'ONYONG';
+  if (str === 'GABRIEL' || str.includes('GABRIEL') || str.includes('GEBI') || str.includes('GABBY')) return 'GABRIEL';
+  if (str === 'YUSRIL' || str.includes('YUSRIL') || str.includes('USRIL')) return 'YUSRIL';
+  if (str === 'FEKI' || str.includes('FEKI') || str.includes('FEKY') || str.includes('FEKKY')) return 'FEKI';
+  if (str === 'PIYER' || str.includes('PIYER') || str.includes('PIER') || str.includes('PIETER') || str.includes('PIET')) return 'PIYER';
+  if (str === 'RAHMAT' || str.includes('RAHMAT') || str.includes('RAHMAD') || str.includes('MAMAD')) return 'RAHMAT';
+  if (str === 'VAL' || str.includes('VALEN') || str.includes('VALLEN') || str.includes('VALENTINO')) return 'VAL';
+  if (str === 'HANS' || str.includes('HANS') || str.includes('HANZ')) return 'HANS';
+  if (str === 'RISKI' || str.includes('RISKI') || str.includes('RISKY') || str.includes('RIZKY') || str.includes('RIZKI')) return 'RISKI';
+  if (str === 'YONO' || str.includes('YONO') || str.includes('SUTIYONO')) return 'YONO';
+  if (str === 'SALOMO' || str.includes('SALOMO') || str.includes('SALOMON')) return 'SALOMO';
+  if (str === 'ANDRE' || str.includes('ANDRE') || str.includes('ANDRI')) return 'ANDRE';
+  if (str === 'HARDIN' || str.includes('HARDIN') || str.includes('HARDING')) return 'HARDIN';
+  if (str === 'AUNUR' || str.includes('AUNUR') || str.includes('ANUR')) return 'AUNUR';
+  if (str === 'NAKUL' || str.includes('NAKUL') || str.includes('NACUL')) return 'NAKUL';
+  if (str === 'ABDUL' || str.includes('ABDUL') || str.includes('DOEL')) return 'ABDUL';
+  if (str === 'FRANS' || str.includes('FRANS')) return 'FRANS';
+
+  const exact = PETUGAS_LIST.find(p => p === str);
+  if (exact) return exact as PetugasName;
+
+  return 'GABRIEL';
+}
 
 // Helper to safely load database from disk
 function loadDb(): AppDatabase {
@@ -126,11 +155,19 @@ function loadDb(): AppDatabase {
       const parsed = JSON.parse(raw);
       let records: MeterRecord[] = parsed.records || [];
 
+      // Normalize month and officer for all loaded records
+      records = records.map(r => ({
+        ...r,
+        bulan: normalizeMonthName(r.bulan, r.tanggal),
+        petugas: normalizeOfficerName(r.petugas)
+      }));
+
       // Check if records need auto-initialization
       const augustRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'AGUSTUS' || (r.tanggal || '').toUpperCase().includes('AGUSTUS'));
       const julyRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'JULI' || (r.tanggal || '').toUpperCase().includes('JULI'));
+      const septemberRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'SEPTEMBER' || (r.tanggal || '').toUpperCase().includes('SEPTEMBER'));
 
-      if (records.length < 50 || augustRecords.length === 0 || julyRecords.length === 0) {
+      if (records.length < 50 || augustRecords.length === 0 || julyRecords.length === 0 || septemberRecords.length === 0) {
         const canonical = generateInitialRecords();
         records = canonical;
         parsed.records = canonical;
@@ -227,15 +264,7 @@ function parseCSVToRecords(csvText: string, targetMonth: string): MeterRecord[] 
     if (!rawIdpel && !rawNama) continue;
 
     const rawPetugas = (cleanCols[idxPetugas] || '').toUpperCase().trim();
-    let matchedPetugas = 'GABRIEL';
-    const foundPetugas = PETUGAS_LIST.find(p => rawPetugas.includes(p) || p.includes(rawPetugas));
-    if (foundPetugas) {
-      matchedPetugas = foundPetugas;
-    } else if (rawPetugas && rawPetugas !== '-') {
-      matchedPetugas = rawPetugas;
-    } else {
-      matchedPetugas = PETUGAS_LIST[i % PETUGAS_LIST.length];
-    }
+    const matchedPetugas: PetugasName = normalizeOfficerName(rawPetugas);
 
     const idPel = rawIdpel || `411300${Math.floor(100000 + Math.random() * 900000)}`;
     const nama = rawNama || 'Pelanggan';
@@ -375,14 +404,11 @@ function mergeRecords(sheetRecords: MeterRecord[], existingRecords: MeterRecord[
   }
 
   const combined = [...thisMonthFinal, ...otherMonthsRecords];
-  return combined.map((r, idx) => {
+  return combined.map((r) => {
     const m = normalizeMonthName(r.bulan, r.tanggal);
-    let p = (r.petugas || '').toUpperCase().trim();
-    const found = PETUGAS_LIST.find(pl => p.includes(pl) || pl.includes(p));
-    if (found) p = found;
-    else if (!p || p === '-') p = PETUGAS_LIST[idx % PETUGAS_LIST.length];
+    const p = normalizeOfficerName(r.petugas);
 
-    return { ...r, bulan: m, petugas: p as PetugasName };
+    return { ...r, bulan: m, petugas: p };
   });
 }
 
@@ -570,6 +596,113 @@ app.put('/api/records/:id', (req, res) => {
   res.json({ success: true, record: db.records[idx], lastUpdated: db.lastUpdated });
 });
 
+// Calibrate or fine-tune officer target & realization counts for a specific month
+app.post('/api/officers/calibrate', (req, res) => {
+  const { month, officerName, targetSelesai, targetBelum, user } = req.body;
+  if (!officerName || typeof targetSelesai !== 'number' || typeof targetBelum !== 'number') {
+    return res.status(400).json({ error: 'Missing required parameters: month, officerName, targetSelesai, targetBelum' });
+  }
+
+  const db = loadDb();
+  const canonicalMonth = normalizeMonthName(month || 'SEPTEMBER');
+  const normalizedOfficer = normalizeOfficerName(officerName);
+
+  // Other records
+  const otherRecords = db.records.filter(r => {
+    const rMonth = normalizeMonthName(r.bulan, r.tanggal);
+    const rOfficer = normalizeOfficerName(r.petugas);
+    return !(rMonth === canonicalMonth && rOfficer === normalizedOfficer);
+  });
+
+  // Target officer records
+  const targetRecords = db.records.filter(r => {
+    const rMonth = normalizeMonthName(r.bulan, r.tanggal);
+    const rOfficer = normalizeOfficerName(r.petugas);
+    return rMonth === canonicalMonth && rOfficer === normalizedOfficer;
+  });
+
+  const updatedTargetRecords: MeterRecord[] = [];
+  const existingSelesai = targetRecords.filter(r => r.status === 'SELESAI');
+  const existingBelum = targetRecords.filter(r => r.status === 'BELUM');
+
+  // Adjust Selesai
+  for (let s = 0; s < targetSelesai; s++) {
+    if (s < existingSelesai.length) {
+      updatedTargetRecords.push(existingSelesai[s]);
+    } else {
+      const day = (s % 28) + 1;
+      const meterBaru = `86299${Math.floor(100000 + Math.random() * 900000)}`;
+      updatedTargetRecords.push({
+        id: `GM-${canonicalMonth.substring(0, 3)}-${Date.now().toString().slice(-4)}-${s}`,
+        tanggal: `${canonicalMonth} 2026 (Tgl ${day})`,
+        bulan: canonicalMonth,
+        idPelanggan: `411300${Math.floor(100000 + Math.random() * 900000)}`,
+        namaPelanggan: `Pelanggan Terganti (${normalizedOfficer})`,
+        tarif: 'R1T',
+        daya: 1300,
+        noMeterLama: `${Math.floor(32100000000 + Math.random() * 900000000)}`,
+        noMeterBaru: meterBaru,
+        noAgenda: `411300562609${Math.floor(100000 + Math.random() * 900000)}`,
+        noSnMaterialKwh: `PLN021900002240269${meterBaru.substring(2)}`,
+        noSnMaterialMcb: '-',
+        kabelTw: '-',
+        segel: '-',
+        standBongkar: '0',
+        jenis: 'PRA BAYAR',
+        gantiMeter: 'METER TUA',
+        petugas: normalizedOfficer,
+        status: 'SELESAI',
+        alamat: 'Wilayah ULP Baguala'
+      });
+    }
+  }
+
+  // Adjust Belum
+  for (let b = 0; b < targetBelum; b++) {
+    if (b < existingBelum.length) {
+      updatedTargetRecords.push(existingBelum[b]);
+    } else {
+      const day = (b % 15) + 1;
+      updatedTargetRecords.push({
+        id: `GM-${canonicalMonth.substring(0, 3)}-${Date.now().toString().slice(-4)}-BLM-${b}`,
+        tanggal: `${canonicalMonth} 2026 (Tgl ${day})`,
+        bulan: canonicalMonth,
+        idPelanggan: `411300${Math.floor(100000 + Math.random() * 900000)}`,
+        namaPelanggan: `Pelanggan Pending (${normalizedOfficer})`,
+        tarif: 'R1T',
+        daya: 1300,
+        noMeterLama: `${Math.floor(32100000000 + Math.random() * 900000000)}`,
+        noMeterBaru: '-',
+        noAgenda: `411300562609${Math.floor(100000 + Math.random() * 900000)}`,
+        noSnMaterialKwh: '-',
+        noSnMaterialMcb: '-',
+        kabelTw: '-',
+        segel: '-',
+        standBongkar: '-',
+        jenis: 'PRA BAYAR',
+        gantiMeter: 'METER GANGGUAN',
+        petugas: normalizedOfficer,
+        status: 'BELUM',
+        alamat: 'Wilayah ULP Baguala'
+      });
+    }
+  }
+
+  db.records = [...otherRecords, ...updatedTargetRecords];
+  db.logs.unshift({
+    id: `LOG-${Date.now().toString().slice(-6)}`,
+    timestamp: new Date().toLocaleString('id-ID'),
+    user: user || 'Admin',
+    action: 'CALIBRATE_OFFICER',
+    targetId: normalizedOfficer,
+    details: `Kalibrasi Petugas ${normalizedOfficer} (${canonicalMonth}): Selesai=${targetSelesai}, Belum=${targetBelum}`
+  });
+  db.logs = db.logs.slice(0, 100);
+  saveDb(db);
+
+  res.json({ success: true, records: db.records, lastUpdated: db.lastUpdated });
+});
+
 // Delete single record
 app.delete('/api/records/:id', (req, res) => {
   const { id } = req.params;
@@ -739,10 +872,7 @@ app.post('/api/webhook/sheet-update', (req, res) => {
         return res.json({ success: true, message: 'Ignored empty row edit' });
       }
 
-      let matchedPetugas: PetugasName = 'GABRIEL';
-      const found = PETUGAS_LIST.find(p => rawPetugas.includes(p) || p.includes(rawPetugas));
-      if (found) matchedPetugas = found as PetugasName;
-      else if (rawPetugas && rawPetugas !== '-') matchedPetugas = rawPetugas as PetugasName;
+      const matchedPetugas: PetugasName = normalizeOfficerName(rawPetugas);
 
       const hasMeterBaru = rawNoBaru !== '' && rawNoBaru !== '-' && rawNoBaru.length >= 4;
 

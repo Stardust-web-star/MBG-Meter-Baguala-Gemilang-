@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { MeterRecord, PetugasName, JenisMeter, AlasanGantiMeter, StatusGanti } from '../types';
-import { PETUGAS_LIST } from '../data/mockData';
+import { PETUGAS_LIST, normalizeOfficerName } from '../data/mockData';
 import { 
   BarChart3, 
   CheckCircle2, 
@@ -64,20 +64,21 @@ export function MonitoringMenu({
 
     // Populate counts
     records.forEach(r => {
-      if (!map[r.petugas]) {
-        map[r.petugas] = { belum: 0, selesai: 0, total: 0, gangguan: 0, tua: 0 };
+      const p = normalizeOfficerName(r.petugas);
+      if (!map[p]) {
+        map[p] = { belum: 0, selesai: 0, total: 0, gangguan: 0, tua: 0 };
       }
       if (r.status === 'SELESAI') {
-        map[r.petugas].selesai++;
+        map[p].selesai++;
       } else {
-        map[r.petugas].belum++;
+        map[p].belum++;
       }
-      map[r.petugas].total++;
+      map[p].total++;
 
       if (r.gantiMeter === 'METER GANGGUAN') {
-        map[r.petugas].gangguan++;
+        map[p].gangguan++;
       } else {
-        map[r.petugas].tua++;
+        map[p].tua++;
       }
     });
 

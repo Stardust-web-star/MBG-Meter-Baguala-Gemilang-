@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MeterRecord } from '../types';
-import { PETUGAS_LIST } from '../data/mockData';
+import { PETUGAS_LIST, normalizeOfficerName } from '../data/mockData';
 import { 
   Sparkles,
   Printer,
@@ -79,21 +79,13 @@ export function InformasiMenu({
     // Productivity by Officer for all 17 officers
     const officerMap: Record<string, { selesai: number; belum: number; total: number }> = {};
     
-    // Initialize with standard 17 officers
-    const ALL_17_OFFICERS = [
-      'ONYONG', 'GABRIEL', 'YUSRIL', 'FEKI', 'PIYER', 
-      'RAHMAT', 'VAL', 'HANS', 'RISKI', 'YONO', 
-      'SALOMO', 'ANDRE', 'HARDIN', 'AUNUR', 'NAKUL', 
-      'ABDUL', 'FRANS'
-    ];
-
-    ALL_17_OFFICERS.forEach(p => {
+    // Initialize with standard 17 canonical officers
+    PETUGAS_LIST.forEach(p => {
       officerMap[p] = { selesai: 0, belum: 0, total: 0 };
     });
 
     records.forEach(r => {
-      const pName = (r.petugas || '').toUpperCase().trim();
-      const matched = ALL_17_OFFICERS.find(o => o === pName) || pName;
+      const matched = normalizeOfficerName(r.petugas);
       if (!officerMap[matched]) {
         officerMap[matched] = { selesai: 0, belum: 0, total: 0 };
       }
