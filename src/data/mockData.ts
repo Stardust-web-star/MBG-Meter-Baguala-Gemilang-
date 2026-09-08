@@ -1,23 +1,25 @@
 import { MeterRecord, UserAccount, PetugasName } from '../types';
 
 export const PETUGAS_LIST: PetugasName[] = [
-  'ONYONG',
-  'GABRIEL',
-  'YUSRIL',
-  'FEKI',
-  'PIYER',
-  'RAHMAT',
-  'VAL',
-  'HANS',
-  'RISKI',
-  'YONO',
-  'SALOMO',
-  'ANDRE',
-  'HARDIN',
-  'AUNUR',
-  'NAKUL',
   'ABDUL',
-  'FRANS'
+  'ANDRE',
+  'AUNUR',
+  'FEKI',
+  'FRANS',
+  'GABRIEL',
+  'HARDIN',
+  'IKBAL',
+  'MELKY',
+  'NAKUL',
+  'ONYONG',
+  'PIYER',
+  'RIZKY',
+  'SALOMO',
+  'VAL',
+  'YONO',
+  'YUSRIL',
+  'RAHMAT',
+  'HANS'
 ];
 
 export function normalizeOfficerName(rawName?: string): PetugasName {
@@ -25,28 +27,30 @@ export function normalizeOfficerName(rawName?: string): PetugasName {
   const str = String(rawName).toUpperCase().trim();
   if (!str || str === '-' || str === 'NO' || str === 'NULL' || str === 'UNDEFINED') return 'GABRIEL';
 
-  if (str === 'ONYONG' || str.includes('ONYON') || str.includes('ONNYONG')) return 'ONYONG';
-  if (str === 'GABRIEL' || str.includes('GABRIEL') || str.includes('GEBI') || str.includes('GABBY')) return 'GABRIEL';
-  if (str === 'YUSRIL' || str.includes('YUSRIL') || str.includes('USRIL')) return 'YUSRIL';
-  if (str === 'FEKI' || str.includes('FEKI') || str.includes('FEKY') || str.includes('FEKKY')) return 'FEKI';
-  if (str === 'PIYER' || str.includes('PIYER') || str.includes('PIER') || str.includes('PIETER') || str.includes('PIET')) return 'PIYER';
-  if (str === 'RAHMAT' || str.includes('RAHMAT') || str.includes('RAHMAD') || str.includes('MAMAD')) return 'RAHMAT';
-  if (str === 'VAL' || str.includes('VALEN') || str.includes('VALLEN') || str.includes('VALENTINO')) return 'VAL';
-  if (str === 'HANS' || str.includes('HANS') || str.includes('HANZ')) return 'HANS';
-  if (str === 'RISKI' || str.includes('RISKI') || str.includes('RISKY') || str.includes('RIZKY') || str.includes('RIZKI')) return 'RISKI';
-  if (str === 'YONO' || str.includes('YONO') || str.includes('SUTIYONO')) return 'YONO';
-  if (str === 'SALOMO' || str.includes('SALOMO') || str.includes('SALOMON')) return 'SALOMO';
-  if (str === 'ANDRE' || str.includes('ANDRE') || str.includes('ANDRI')) return 'ANDRE';
-  if (str === 'HARDIN' || str.includes('HARDIN') || str.includes('HARDING')) return 'HARDIN';
-  if (str === 'AUNUR' || str.includes('AUNUR') || str.includes('ANUR')) return 'AUNUR';
-  if (str === 'NAKUL' || str.includes('NAKUL') || str.includes('NACUL')) return 'NAKUL';
   if (str === 'ABDUL' || str.includes('ABDUL') || str.includes('DOEL')) return 'ABDUL';
+  if (str === 'ANDRE' || str.includes('ANDRE') || str.includes('ANDRI')) return 'ANDRE';
+  if (str === 'AUNUR' || str.includes('AUNUR') || str.includes('ANUR')) return 'AUNUR';
+  if (str === 'FEKI' || str.includes('FEKI') || str.includes('FEKY') || str.includes('FEKKY')) return 'FEKI';
   if (str === 'FRANS' || str.includes('FRANS')) return 'FRANS';
+  if (str === 'GABRIEL' || str.includes('GABRIEL') || str.includes('GEBI') || str.includes('GABBY')) return 'GABRIEL';
+  if (str === 'HARDIN' || str.includes('HARDIN') || str.includes('HARDING')) return 'HARDIN';
+  if (str === 'IKBAL' || str.includes('IKBAL') || str.includes('IQBAL')) return 'IKBAL';
+  if (str === 'MELKY' || str.includes('MELKY') || str.includes('MELKI')) return 'MELKY';
+  if (str === 'NAKUL' || str.includes('NAKUL') || str.includes('NACUL')) return 'NAKUL';
+  if (str === 'ONYONG' || str.includes('ONYON') || str.includes('ONNYONG')) return 'ONYONG';
+  if (str === 'PIYER' || str.includes('PIYER') || str.includes('PIER') || str.includes('PIETER') || str.includes('PIET')) return 'PIYER';
+  if (str === 'RIZKY' || str === 'RISKI' || str.includes('RISKI') || str.includes('RISKY') || str.includes('RIZKY') || str.includes('RIZKI')) return 'RIZKY';
+  if (str === 'SALOMO' || str.includes('SALOMO') || str.includes('SALOMON')) return 'SALOMO';
+  if (str === 'VAL' || str.includes('VALEN') || str.includes('VALLEN') || str.includes('VALENTINO')) return 'VAL';
+  if (str === 'YONO' || str.includes('YONO') || str.includes('SUTIYONO')) return 'YONO';
+  if (str === 'YUSRIL' || str.includes('YUSRIL') || str.includes('USRIL')) return 'YUSRIL';
+  if (str === 'RAHMAT' || str.includes('RAHMAT') || str.includes('RAHMAD') || str.includes('MAMAD')) return 'RAHMAT';
+  if (str === 'HANS' || str.includes('HANS') || str.includes('HANZ')) return 'HANS';
 
   const exact = PETUGAS_LIST.find(p => p === str);
   if (exact) return exact;
 
-  return 'GABRIEL';
+  return str as PetugasName;
 }
 
 export const DEFAULT_USERS: UserAccount[] = [
@@ -79,7 +83,7 @@ export const DEFAULT_USERS: UserAccount[] = [
 ];
 
 // Target counts per officer for August 2026 matching Google Sheet "MON AGU":
-const AUGUST_OFFICER_STATS: Record<PetugasName, { belum: number; selesai: number }> = {
+const AUGUST_OFFICER_STATS: Record<string, { belum: number; selesai: number }> = {
   'ONYONG': { belum: 0, selesai: 45 },
   'GABRIEL': { belum: 0, selesai: 47 },
   'YUSRIL': { belum: 0, selesai: 52 },
@@ -98,10 +102,12 @@ const AUGUST_OFFICER_STATS: Record<PetugasName, { belum: number; selesai: number
   'ABDUL': { belum: 0, selesai: 1 },
   'FRANS': { belum: 0, selesai: 1 },
   'RIZKY': { belum: 0, selesai: 5 },
+  'IKBAL': { belum: 0, selesai: 0 },
+  'MELKY': { belum: 0, selesai: 0 },
 };
 
 // Target counts per officer for July 2026 matching Google Sheet "JULI" (100% Selesai, 0 Belum):
-const JULY_OFFICER_STATS: Record<PetugasName, { belum: number; selesai: number }> = {
+const JULY_OFFICER_STATS: Record<string, { belum: number; selesai: number }> = {
   'ONYONG': { belum: 0, selesai: 42 },
   'GABRIEL': { belum: 0, selesai: 39 },
   'YUSRIL': { belum: 0, selesai: 46 },
@@ -120,28 +126,31 @@ const JULY_OFFICER_STATS: Record<PetugasName, { belum: number; selesai: number }
   'ABDUL': { belum: 0, selesai: 14 },
   'FRANS': { belum: 0, selesai: 11 },
   'RIZKY': { belum: 0, selesai: 6 },
+  'IKBAL': { belum: 0, selesai: 0 },
+  'MELKY': { belum: 0, selesai: 0 },
 };
 
-// Target counts per officer for September 2026 (Full 17 Field Officers Realization):
-const SEPTEMBER_OFFICER_STATS: Record<PetugasName, { belum: number; selesai: number }> = {
-  'ONYONG': { belum: 2, selesai: 41 },
-  'GABRIEL': { belum: 1, selesai: 38 },
-  'YUSRIL': { belum: 2, selesai: 44 },
-  'FEKI': { belum: 1, selesai: 22 },
-  'PIYER': { belum: 1, selesai: 23 },
-  'RAHMAT': { belum: 1, selesai: 22 },
-  'VAL': { belum: 1, selesai: 17 },
-  'HANS': { belum: 1, selesai: 16 },
-  'RISKI': { belum: 1, selesai: 15 },
-  'YONO': { belum: 0, selesai: 14 },
-  'SALOMO': { belum: 1, selesai: 9 },
-  'ANDRE': { belum: 0, selesai: 16 },
-  'HARDIN': { belum: 0, selesai: 8 },
-  'AUNUR': { belum: 0, selesai: 11 },
-  'NAKUL': { belum: 1, selesai: 9 },
-  'ABDUL': { belum: 1, selesai: 23 },
-  'FRANS': { belum: 0, selesai: 8 },
-  'RIZKY': { belum: 1, selesai: 15 },
+// Target counts per officer for September 2026 matching Google Sheet "MON SEP" exactly:
+const SEPTEMBER_OFFICER_STATS: Record<string, { belum: number; selesai: number; paskabayar: number; prabayar: number }> = {
+  'ABDUL': { belum: 0, selesai: 1, paskabayar: 0, prabayar: 1 },
+  'ANDRE': { belum: 5, selesai: 1, paskabayar: 1, prabayar: 5 },
+  'AUNUR': { belum: 0, selesai: 4, paskabayar: 4, prabayar: 0 },
+  'FEKI': { belum: 0, selesai: 13, paskabayar: 13, prabayar: 0 },
+  'FRANS': { belum: 2, selesai: 2, paskabayar: 0, prabayar: 4 },
+  'GABRIEL': { belum: 1, selesai: 26, paskabayar: 24, prabayar: 3 },
+  'HARDIN': { belum: 2, selesai: 0, paskabayar: 0, prabayar: 2 },
+  'IKBAL': { belum: 0, selesai: 7, paskabayar: 7, prabayar: 0 },
+  'MELKY': { belum: 0, selesai: 4, paskabayar: 4, prabayar: 0 },
+  'NAKUL': { belum: 0, selesai: 1, paskabayar: 0, prabayar: 1 },
+  'ONYONG': { belum: 0, selesai: 3, paskabayar: 1, prabayar: 2 },
+  'PIYER': { belum: 0, selesai: 4, paskabayar: 4, prabayar: 0 },
+  'RIZKY': { belum: 0, selesai: 3, paskabayar: 3, prabayar: 0 },
+  'SALOMO': { belum: 1, selesai: 0, paskabayar: 0, prabayar: 1 },
+  'VAL': { belum: 0, selesai: 1, paskabayar: 1, prabayar: 0 },
+  'YONO': { belum: 0, selesai: 18, paskabayar: 18, prabayar: 0 },
+  'YUSRIL': { belum: 6, selesai: 3, paskabayar: 3, prabayar: 6 },
+  'RAHMAT': { belum: 0, selesai: 0, paskabayar: 0, prabayar: 0 },
+  'HANS': { belum: 0, selesai: 0, paskabayar: 0, prabayar: 0 }
 };
 
 // Seed realistic authentic records matching the screenshot
@@ -1182,15 +1191,31 @@ export function generateInitialRecords(): MeterRecord[] {
     }
   });
 
-  // Generate distinct datasets for SEPTEMBER 2026
+  // Generate distinct datasets for SEPTEMBER 2026 matching MON SEP Google Sheet
   PETUGAS_LIST.forEach((petugas, pIdx) => {
-    const target = SEPTEMBER_OFFICER_STATS[petugas] || { belum: 1, selesai: 10 };
-    
+    const target = SEPTEMBER_OFFICER_STATS[petugas] || { belum: 0, selesai: 0, paskabayar: 0, prabayar: 0 };
+    const totalRecords = target.selesai + target.belum;
+    if (totalRecords === 0) return;
+
+    // Distribute jenis matching exact paskabayar and prabayar numbers
+    let paskaLeft = target.paskabayar;
+    let praLeft = target.prabayar;
+
     for (let i = 0; i < target.selesai; i++) {
       const day = (i % 20) + 1;
       const t = sampleTarifs[i % sampleTarifs.length];
       const surname = sampleSurnames[(i + pIdx * 4) % sampleSurnames.length];
       const meterBaru = `86299${Math.floor(100000 + Math.random() * 900000)}`;
+      
+      let jenis: 'PASKA BAYAR' | 'PRA BAYAR' = 'PASKA BAYAR';
+      if (paskaLeft > 0) {
+        jenis = 'PASKA BAYAR';
+        paskaLeft--;
+      } else if (praLeft > 0) {
+        jenis = 'PRA BAYAR';
+        praLeft--;
+      }
+
       records.push({
         id: `GM-202609-${String(recordId++).padStart(4, '0')}`,
         tanggal: `SEPTEMBER 2026 (Tgl ${day})`,
@@ -1207,7 +1232,7 @@ export function generateInitialRecords(): MeterRecord[] {
         kabelTw: '-',
         segel: '-',
         standBongkar: '0',
-        jenis: t.jenis,
+        jenis,
         gantiMeter: 'METER TUA',
         petugas,
         status: 'SELESAI',
@@ -1219,6 +1244,16 @@ export function generateInitialRecords(): MeterRecord[] {
       const day = (b % 15) + 1;
       const t = sampleTarifs[b % sampleTarifs.length];
       const surname = sampleSurnames[(b + 7) % sampleSurnames.length];
+      
+      let jenis: 'PASKA BAYAR' | 'PRA BAYAR' = 'PRA BAYAR';
+      if (praLeft > 0) {
+        jenis = 'PRA BAYAR';
+        praLeft--;
+      } else if (paskaLeft > 0) {
+        jenis = 'PASKA BAYAR';
+        paskaLeft--;
+      }
+
       records.push({
         id: `GM-202609-${String(recordId++).padStart(4, '0')}`,
         tanggal: `SEPTEMBER 2026 (Tgl ${day})`,
@@ -1235,7 +1270,7 @@ export function generateInitialRecords(): MeterRecord[] {
         kabelTw: '-',
         segel: '-',
         standBongkar: '-',
-        jenis: t.jenis,
+        jenis,
         gantiMeter: 'METER GANGGUAN',
         petugas,
         status: 'BELUM',

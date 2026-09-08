@@ -113,9 +113,25 @@ const DEFAULT_CONFIG: GoogleSheetConfig = {
 };
 
 const PETUGAS_LIST = [
-  'ONYONG', 'GABRIEL', 'YUSRIL', 'FEKI', 'PIYER', 'RAHMAT',
-  'VAL', 'HANS', 'RISKI', 'YONO', 'SALOMO', 'ANDRE',
-  'HARDIN', 'AUNUR', 'NAKUL', 'ABDUL', 'FRANS'
+  'ABDUL',
+  'ANDRE',
+  'AUNUR',
+  'FEKI',
+  'FRANS',
+  'GABRIEL',
+  'HARDIN',
+  'IKBAL',
+  'MELKY',
+  'NAKUL',
+  'ONYONG',
+  'PIYER',
+  'RIZKY',
+  'SALOMO',
+  'VAL',
+  'YONO',
+  'YUSRIL',
+  'RAHMAT',
+  'HANS'
 ];
 
 function normalizeOfficerName(rawName?: string): PetugasName {
@@ -123,28 +139,30 @@ function normalizeOfficerName(rawName?: string): PetugasName {
   const str = String(rawName).toUpperCase().trim();
   if (!str || str === '-' || str === 'NO' || str === 'NULL' || str === 'UNDEFINED') return 'GABRIEL';
 
-  if (str === 'ONYONG' || str.includes('ONYON') || str.includes('ONNYONG')) return 'ONYONG';
-  if (str === 'GABRIEL' || str.includes('GABRIEL') || str.includes('GEBI') || str.includes('GABBY')) return 'GABRIEL';
-  if (str === 'YUSRIL' || str.includes('YUSRIL') || str.includes('USRIL')) return 'YUSRIL';
-  if (str === 'FEKI' || str.includes('FEKI') || str.includes('FEKY') || str.includes('FEKKY')) return 'FEKI';
-  if (str === 'PIYER' || str.includes('PIYER') || str.includes('PIER') || str.includes('PIETER') || str.includes('PIET')) return 'PIYER';
-  if (str === 'RAHMAT' || str.includes('RAHMAT') || str.includes('RAHMAD') || str.includes('MAMAD')) return 'RAHMAT';
-  if (str === 'VAL' || str.includes('VALEN') || str.includes('VALLEN') || str.includes('VALENTINO')) return 'VAL';
-  if (str === 'HANS' || str.includes('HANS') || str.includes('HANZ')) return 'HANS';
-  if (str === 'RISKI' || str.includes('RISKI') || str.includes('RISKY') || str.includes('RIZKY') || str.includes('RIZKI')) return 'RISKI';
-  if (str === 'YONO' || str.includes('YONO') || str.includes('SUTIYONO')) return 'YONO';
-  if (str === 'SALOMO' || str.includes('SALOMO') || str.includes('SALOMON')) return 'SALOMO';
-  if (str === 'ANDRE' || str.includes('ANDRE') || str.includes('ANDRI')) return 'ANDRE';
-  if (str === 'HARDIN' || str.includes('HARDIN') || str.includes('HARDING')) return 'HARDIN';
-  if (str === 'AUNUR' || str.includes('AUNUR') || str.includes('ANUR')) return 'AUNUR';
-  if (str === 'NAKUL' || str.includes('NAKUL') || str.includes('NACUL')) return 'NAKUL';
   if (str === 'ABDUL' || str.includes('ABDUL') || str.includes('DOEL')) return 'ABDUL';
+  if (str === 'ANDRE' || str.includes('ANDRE') || str.includes('ANDRI')) return 'ANDRE';
+  if (str === 'AUNUR' || str.includes('AUNUR') || str.includes('ANUR')) return 'AUNUR';
+  if (str === 'FEKI' || str.includes('FEKI') || str.includes('FEKY') || str.includes('FEKKY')) return 'FEKI';
   if (str === 'FRANS' || str.includes('FRANS')) return 'FRANS';
+  if (str === 'GABRIEL' || str.includes('GABRIEL') || str.includes('GEBI') || str.includes('GABBY')) return 'GABRIEL';
+  if (str === 'HARDIN' || str.includes('HARDIN') || str.includes('HARDING')) return 'HARDIN';
+  if (str === 'IKBAL' || str.includes('IKBAL') || str.includes('IQBAL')) return 'IKBAL';
+  if (str === 'MELKY' || str.includes('MELKY') || str.includes('MELKI')) return 'MELKY';
+  if (str === 'NAKUL' || str.includes('NAKUL') || str.includes('NACUL')) return 'NAKUL';
+  if (str === 'ONYONG' || str.includes('ONYON') || str.includes('ONNYONG')) return 'ONYONG';
+  if (str === 'PIYER' || str.includes('PIYER') || str.includes('PIER') || str.includes('PIETER') || str.includes('PIET')) return 'PIYER';
+  if (str === 'RIZKY' || str === 'RISKI' || str.includes('RISKI') || str.includes('RISKY') || str.includes('RIZKY') || str.includes('RIZKI')) return 'RIZKY';
+  if (str === 'SALOMO' || str.includes('SALOMO') || str.includes('SALOMON')) return 'SALOMO';
+  if (str === 'VAL' || str.includes('VALEN') || str.includes('VALLEN') || str.includes('VALENTINO')) return 'VAL';
+  if (str === 'YONO' || str.includes('YONO') || str.includes('SUTIYONO')) return 'YONO';
+  if (str === 'YUSRIL' || str.includes('YUSRIL') || str.includes('USRIL')) return 'YUSRIL';
+  if (str === 'RAHMAT' || str.includes('RAHMAT') || str.includes('RAHMAD') || str.includes('MAMAD')) return 'RAHMAT';
+  if (str === 'HANS' || str.includes('HANS') || str.includes('HANZ')) return 'HANS';
 
   const exact = PETUGAS_LIST.find(p => p === str);
   if (exact) return exact as PetugasName;
 
-  return 'GABRIEL';
+  return str as PetugasName;
 }
 
 // Helper to safely load database from disk
@@ -162,12 +180,12 @@ function loadDb(): AppDatabase {
         petugas: normalizeOfficerName(r.petugas)
       }));
 
-      // Check if records need auto-initialization
+      // Check if records need auto-initialization or refresh for canonical distribution
       const augustRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'AGUSTUS' || (r.tanggal || '').toUpperCase().includes('AGUSTUS'));
       const julyRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'JULI' || (r.tanggal || '').toUpperCase().includes('JULI'));
       const septemberRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'SEPTEMBER' || (r.tanggal || '').toUpperCase().includes('SEPTEMBER'));
 
-      if (records.length < 50 || augustRecords.length === 0 || julyRecords.length === 0 || septemberRecords.length === 0) {
+      if (records.length < 50 || augustRecords.length === 0 || julyRecords.length === 0 || septemberRecords.length !== 108) {
         const canonical = generateInitialRecords();
         records = canonical;
         parsed.records = canonical;
@@ -1127,28 +1145,37 @@ app.get('/api/logs', (req, res) => {
 // -------------------------------------------------------------
 // START SERVER WITH VITE MIDDLEWARE (DEV) / STATIC (PROD)
 // -------------------------------------------------------------
-async function startServer() {
-  // Perform startup sync from Google Sheet for all active months and push to Firestore
-  const initialDb = loadDb();
-  console.log('Syncing active months from Google Sheet on startup...');
+async function runStartupSync() {
   try {
+    const initialDb = loadDb();
+    console.log('Background startup sync for active months...');
     const months = ['AGUSTUS', 'JULI', 'SEPTEMBER'];
+    let currentRecords = initialDb.records;
+    let hasUpdates = false;
+
     for (const m of months) {
-      const syncRes = await pullFromGoogleSheet(m, initialDb.config, initialDb.records);
+      const syncRes = await pullFromGoogleSheet(m, initialDb.config, currentRecords);
       if (syncRes.success && syncRes.records.length > 0) {
-        initialDb.records = syncRes.records;
+        currentRecords = syncRes.records;
+        hasUpdates = true;
       }
     }
-    saveDb(initialDb);
-    syncToFirestoreServer(initialDb.records).catch(() => {});
-    console.log(`Startup Google Sheet & Firestore sync completed. Total records: ${initialDb.records.length}`);
+
+    if (hasUpdates) {
+      initialDb.records = currentRecords;
+      saveDb(initialDb);
+      syncToFirestoreServer(initialDb.records).catch(() => {});
+      console.log(`Startup Google Sheet sync completed. Total records: ${initialDb.records.length}`);
+    }
   } catch (e) {
     console.warn('Startup Google Sheet sync note:', e);
   }
+}
 
+async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, host: '0.0.0.0' },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -1160,7 +1187,13 @@ async function startServer() {
     });
   }
 
-  // Background polling loop (auto-sync every 5 seconds for fast real-time Google Sheet synchronization)
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`⚡ PLN MBG Server running on http://0.0.0.0:${PORT}`);
+    // Run startup sync in background without blocking server ready
+    runStartupSync().catch(() => {});
+  });
+
+  // Background polling loop (auto-sync every 8 seconds for fast real-time Google Sheet synchronization)
   setInterval(async () => {
     try {
       const db = loadDb();
@@ -1189,11 +1222,7 @@ async function startServer() {
     } catch {
       // Silent catch for background interval
     }
-  }, 5000);
-
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`⚡ PLN MBG Server running on http://0.0.0.0:${PORT}`);
-  });
+  }, 8000);
 }
 
 startServer();

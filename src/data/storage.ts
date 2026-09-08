@@ -5,7 +5,7 @@ import { normalizeMonthName } from '../utils/monthUtils';
 import { syncRecordsToFirestore, saveSingleRecordToFirestore } from '../lib/firebase';
 
 const STORAGE_KEYS = {
-  RECORDS: 'pln_mbg_meter_records_v12_canonical_sep103',
+  RECORDS: 'pln_mbg_meter_records_v14_canonical_sep108',
   USERS: 'pln_mbg_users_v2',
   CURRENT_USER: 'pln_mbg_current_user_v1',
   GSHEET_CONFIG: 'pln_mbg_gsheet_config_v2',
@@ -172,14 +172,14 @@ export function getStoredRecords(): MeterRecord[] {
     }
     const parsed: MeterRecord[] = JSON.parse(raw);
 
-    // Sanity check: Ensure records exist for August, July, and September matches canonical 103 items
+    // Sanity check: Ensure records exist for August, July, and September matches canonical 108 items
     const aug = parsed.filter(r => (r.bulan || '').toUpperCase() === 'AGUSTUS' || (r.tanggal || '').toUpperCase().includes('AGUSTUS'));
     const juli = parsed.filter(r => (r.bulan || '').toUpperCase() === 'JULI' || (r.tanggal || '').toUpperCase().includes('JULI'));
     const sep = parsed.filter(r => (r.bulan || '').toUpperCase() === 'SEPTEMBER' || (r.tanggal || '').toUpperCase().includes('SEPTEMBER'));
 
-    // Self-healing: If local cache has the old 222 September records, or missing months, auto-reconcile
-    if (parsed.length < 100 || aug.length === 0 || juli.length === 0 || sep.length > 150) {
-      console.log(`[Storage] Auto-healing detected stale cache (Sep: ${sep.length}, Total: ${parsed.length}). Reconciling to canonical master dataset (103 Sep).`);
+    // Self-healing: If local cache has incomplete or missing months, auto-reconcile
+    if (parsed.length < 100 || aug.length === 0 || juli.length === 0 || sep.length === 0) {
+      console.log(`[Storage] Auto-healing detected stale cache (Sep: ${sep.length}, Total: ${parsed.length}). Reconciling to canonical master dataset.`);
       const canonical = generateInitialRecords();
       saveRecordsLocally(canonical);
       syncRecordsToFirestore(canonical).catch(() => {});

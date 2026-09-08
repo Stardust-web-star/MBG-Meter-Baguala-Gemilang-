@@ -44,7 +44,7 @@ var STANDARD_HEADERS = [
   'ALAMAT'
 ];
 
-var OFFICER_LIST = ['ABDUL', 'ANDRE', 'AUNUR', 'FEKI', 'FRANS', 'GABRIEL', 'HANS', 'HARDIN', 'ONYONG', 'PIYER', 'RAHMAT', 'RISKI', 'RIZKY', 'SALOMO', 'VAL', 'YONO', 'YUSRIL'];
+var OFFICER_LIST = ['ABDUL', 'ANDRE', 'AUNUR', 'FEKI', 'FRANS', 'GABRIEL', 'HARDIN', 'IKBAL', 'MELKY', 'NAKUL', 'ONYONG', 'PIYER', 'RAHMAT', 'RISKI', 'RIZKY', 'SALOMO', 'VAL', 'YONO', 'YUSRIL', 'HANS'];
 
 /**
  * Helper untuk mengambil URL Webhook Dashboard
