@@ -46,7 +46,7 @@ function notifySyncBus(type: string, payload?: any): void {
 export const DEFAULT_GSHEET_CONFIG: GoogleSheetConfig = {
   sheetUrl: 'https://docs.google.com/spreadsheets/d/1w0JXKZaJdTqzzc0iA9QK179ggx7sz0EHISt4qhNWlc/edit?gid=18648303#gid=18648303',
   sheetId: '1w0JXKZaJdTqzzc0iA9QK179ggx7sz0EHISt4qhNWlc',
-  webAppUrl: 'https://script.google.com/macros/s/AKfycbxo4wsaicmVoaqSZj9Z7wOErdolaX80LNhjDteG8ZRQsir4Jm4jmss6bza-ZkhSZe5SLA/exec',
+  webAppUrl: 'https://script.google.com/macros/s/AKfycbxo4wsaicmVoaqSZj9Z7wOeRDolaX8OLNhjDteG8ZRQsir4Jm4jmss6bza-ZkhSZe5SLA/exec',
   selectedSheetTab: 'SEPTEMBER',
   autoSync: true,
   lastSyncTime: new Date().toISOString(),
@@ -402,13 +402,20 @@ export function getGSheetConfig(): GoogleSheetConfig {
     const raw = localStorage.getItem(STORAGE_KEYS.GSHEET_CONFIG);
     if (!raw) return DEFAULT_GSHEET_CONFIG;
     const parsed = JSON.parse(raw);
-    return {
+    const cfg: GoogleSheetConfig = {
       ...DEFAULT_GSHEET_CONFIG,
       ...parsed,
       webAppUrl: parsed.webAppUrl || DEFAULT_GSHEET_CONFIG.webAppUrl,
       sheetId: parsed.sheetId || DEFAULT_GSHEET_CONFIG.sheetId,
       sheetUrl: parsed.sheetUrl || DEFAULT_GSHEET_CONFIG.sheetUrl
     };
+
+    if (!cfg.webAppUrl || cfg.webAppUrl.includes('OErdola') || cfg.webAppUrl.includes('X80LNhj')) {
+      cfg.webAppUrl = DEFAULT_GSHEET_CONFIG.webAppUrl;
+      saveGSheetConfigLocally(cfg);
+    }
+
+    return cfg;
   } catch {
     return DEFAULT_GSHEET_CONFIG;
   }

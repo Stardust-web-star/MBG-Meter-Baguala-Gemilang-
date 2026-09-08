@@ -105,7 +105,7 @@ const DEFAULT_USERS: UserAccount[] = [
 const DEFAULT_CONFIG: GoogleSheetConfig = {
   sheetUrl: 'https://docs.google.com/spreadsheets/d/1w0JXKZaJdTqzzc0iA9QK179ggx7sz0EHISt4qhNWlc/edit?gid=18648303#gid=18648303',
   sheetId: '1w0JXKZaJdTqzzc0iA9QK179ggx7sz0EHISt4qhNWlc',
-  webAppUrl: 'https://script.google.com/macros/s/AKfycbxo4wsaicmVoaqSZj9Z7wOErdolaX80LNhjDteG8ZRQsir4Jm4jmss6bza-ZkhSZe5SLA/exec',
+  webAppUrl: 'https://script.google.com/macros/s/AKfycbxo4wsaicmVoaqSZj9Z7wOeRDolaX8OLNhjDteG8ZRQsir4Jm4jmss6bza-ZkhSZe5SLA/exec',
   selectedSheetTab: 'SEPTEMBER',
   autoSync: true,
   lastSyncTime: new Date().toISOString(),
@@ -137,9 +137,14 @@ function loadDb(): AppDatabase {
         fs.writeFileSync(DB_FILE, JSON.stringify(parsed, null, 2), 'utf-8');
       }
 
+      const loadedConfig = { ...DEFAULT_CONFIG, ...(parsed.config || {}) };
+      if (!loadedConfig.webAppUrl || loadedConfig.webAppUrl.includes('OErdola') || loadedConfig.webAppUrl.includes('X80LNhj')) {
+        loadedConfig.webAppUrl = DEFAULT_CONFIG.webAppUrl;
+      }
+
       return {
         records,
-        config: { ...DEFAULT_CONFIG, ...(parsed.config || {}) },
+        config: loadedConfig,
         users: parsed.users || DEFAULT_USERS,
         logs: parsed.logs || [],
         lastUpdated: parsed.lastUpdated || new Date().toISOString()
@@ -400,7 +405,7 @@ async function pullFromGoogleSheet(month: string, config: GoogleSheetConfig, cur
     try {
       // First try allMonths or specific tab
       const targetUrl = `${webAppUrl}${webAppUrl.includes('?') ? '&' : '?'}sheetName=${encodeURIComponent(monthUpper)}&t=${Date.now()}`;
-      const res = await fetch(targetUrl, { signal: AbortSignal.timeout(8000) });
+      const res = await fetch(targetUrl, { signal: AbortSignal.timeout(12000) });
       if (res.ok) {
         const json: any = await res.json();
         if (json && (json.status === 'success' || Array.isArray(json.data))) {

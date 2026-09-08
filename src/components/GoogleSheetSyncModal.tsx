@@ -46,7 +46,10 @@ export function GoogleSheetSyncModal({
   const updateRecords = onImportRecords || onUpdateRecords || (() => {});
   const [sheetUrl, setSheetUrl] = useState(config.sheetUrl || 'https://docs.google.com/spreadsheets/d/1w0JXKZaJdTqzzc0iA9QK179ggx7sz0EHISt4qhNWlc/edit?gid=18648303#gid=18648303');
   const [sheetTab, setSheetTab] = useState(config.selectedSheetTab || getRealCurrentMonthInfo().id);
-  const [webAppUrl, setWebAppUrl] = useState(config.webAppUrl || 'https://script.google.com/macros/s/AKfycbxo4wsaicmVoaqSZj9Z7wOErdolaX80LNhjDteG8ZRQsir4Jm4jmss6bza-ZkhSZe5SLA/exec');
+  const initialWebApp = (config.webAppUrl && !config.webAppUrl.includes('OErdola') && !config.webAppUrl.includes('X80LNhj'))
+    ? config.webAppUrl
+    : 'https://script.google.com/macros/s/AKfycbxo4wsaicmVoaqSZj9Z7wOeRDolaX8OLNhjDteG8ZRQsir4Jm4jmss6bza-ZkhSZe5SLA/exec';
+  const [webAppUrl, setWebAppUrl] = useState(initialWebApp);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isFullSyncing, setIsFullSyncing] = useState(false);
