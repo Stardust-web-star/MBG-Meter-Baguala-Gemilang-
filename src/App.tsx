@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Zap, Database } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { getRealCurrentMonthInfo, normalizeMonthName } from './utils/monthUtils';
 import { 
   MenuId, 
@@ -590,26 +590,6 @@ export default function App() {
                   <span className="text-sky-100 font-medium">PLN UP3 Ambon</span>
                   <span className="text-white/30 font-light">•</span>
                   <span className="text-sky-200/80 font-normal">ULP Baguala</span>
-                </div>
-
-                {/* Right: Live Database Indicator */}
-                <div className="flex items-center gap-2 text-xs relative z-10">
-                  <span className="text-sky-200/70 font-medium text-[11px] hidden sm:inline-flex items-center gap-1.5">
-                    <Database className="w-3.5 h-3.5 text-sky-300" />
-                    Terhubung ke:
-                  </span>
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-white shadow-inner font-mono text-[11px] backdrop-blur-sm transition-colors">
-                    <span className="relative flex h-2 w-2 shrink-0">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-                    </span>
-                    <span className="font-semibold text-white tracking-tight">
-                      MBG_DATABASE_AUGUST.xlsx
-                    </span>
-                    <span className="text-emerald-300 font-sans font-bold text-[9.5px] bg-emerald-500/20 px-1.5 py-0.5 rounded-md border border-emerald-400/30">
-                      (Google Sheet Live)
-                    </span>
-                  </div>
                 </div>
               </footer>
             </div>
