@@ -11,19 +11,15 @@ export type PetugasName =
   | 'GABRIEL'
   | 'HANS'
   | 'HARDIN'
-  | 'IKBAL'
-  | 'MELKY'
-  | 'NAKUL'
   | 'ONYONG'
   | 'PIYER'
   | 'RAHMAT'
   | 'RISKI'
-  | 'RIZKY'
   | 'SALOMO'
   | 'VAL'
   | 'YONO'
   | 'YUSRIL'
-  | (string & {});
+  | 'RIZKY';
 
 export type MenuId = 
   | 'monitoring' 

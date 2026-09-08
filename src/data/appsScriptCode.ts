@@ -44,7 +44,7 @@ var STANDARD_HEADERS = [
   'ALAMAT'
 ];
 
-var OFFICER_LIST = ['ABDUL', 'ANDRE', 'AUNUR', 'FEKI', 'FRANS', 'GABRIEL', 'HARDIN', 'IKBAL', 'MELKY', 'NAKUL', 'ONYONG', 'PIYER', 'RAHMAT', 'RISKI', 'RIZKY', 'SALOMO', 'VAL', 'YONO', 'YUSRIL', 'HANS'];
+var OFFICER_LIST = ['ABDUL', 'ANDRE', 'AUNUR', 'FEKI', 'FRANS', 'GABRIEL', 'HANS', 'HARDIN', 'ONYONG', 'PIYER', 'RAHMAT', 'RISKI', 'RIZKY', 'SALOMO', 'VAL', 'YONO', 'YUSRIL'];
 
 /**
  * Helper untuk mengambil URL Webhook Dashboard
@@ -493,6 +493,16 @@ function extractRecordsFromSheet(sheet) {
     var rawGanti = String(row[colIdx.ganti] || '').toUpperCase();
     var recordGanti = rawGanti.indexOf('GANGGUAN') !== -1 || rawGanti.indexOf('HILANG') !== -1 || rawGanti.indexOf('RUSAK') !== -1 ? 'METER GANGGUAN' : 'METER TUA';
 
+    var rowTanggalStr = String(row[colIdx.tanggal] || '').toUpperCase();
+    var rowMonth = defaultMonth;
+    if (rowTanggalStr.indexOf('SEP') !== -1 || rowTanggalStr.indexOf('/09/') !== -1 || rowTanggalStr.indexOf('-09-') !== -1 || rowTanggalStr.indexOf('/9/') !== -1) {
+      rowMonth = 'SEPTEMBER';
+    } else if (rowTanggalStr.indexOf('AGU') !== -1 || rowTanggalStr.indexOf('AUG') !== -1 || rowTanggalStr.indexOf('/08/') !== -1 || rowTanggalStr.indexOf('-08-') !== -1 || rowTanggalStr.indexOf('/8/') !== -1) {
+      rowMonth = 'AGUSTUS';
+    } else if (rowTanggalStr.indexOf('JUL') !== -1 || rowTanggalStr.indexOf('/07/') !== -1 || rowTanggalStr.indexOf('-07-') !== -1 || rowTanggalStr.indexOf('/7/') !== -1) {
+      rowMonth = 'JULI';
+    }
+
     var record = {
       id: 'GS-' + (idpel || ('ROW-' + (i + 1))),
       tanggal: formatTanggal(row[colIdx.tanggal]),
@@ -513,7 +523,7 @@ function extractRecordsFromSheet(sheet) {
       petugas: normPetugas,
       status: recordStatus,
       alamat: String(row[colIdx.alamat] || 'Wilayah ULP Baguala').trim(),
-      bulan: defaultMonth
+      bulan: rowMonth
     };
     
     records.push(record);

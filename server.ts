@@ -106,64 +106,17 @@ const DEFAULT_CONFIG: GoogleSheetConfig = {
   sheetUrl: 'https://docs.google.com/spreadsheets/d/1w0JXKZaJdTqzzc0iA9QK179ggx7sz0EHISt4qhNWlc/edit?gid=18648303#gid=18648303',
   sheetId: '1w0JXKZaJdTqzzc0iA9QK179ggx7sz0EHISt4qhNWlc',
   webAppUrl: 'https://script.google.com/macros/s/AKfycbxo4wsaicmVoaqSZj9Z7wOErdolaX80LNhjDteG8ZRQsir4Jm4jmss6bza-ZkhSZe5SLA/exec',
-  selectedSheetTab: 'AGUSTUS',
+  selectedSheetTab: 'SEPTEMBER',
   autoSync: true,
   lastSyncTime: new Date().toISOString(),
   syncStatus: 'connected'
 };
 
 const PETUGAS_LIST = [
-  'ABDUL',
-  'ANDRE',
-  'AUNUR',
-  'FEKI',
-  'FRANS',
-  'GABRIEL',
-  'HARDIN',
-  'IKBAL',
-  'MELKY',
-  'NAKUL',
-  'ONYONG',
-  'PIYER',
-  'RIZKY',
-  'SALOMO',
-  'VAL',
-  'YONO',
-  'YUSRIL',
-  'RAHMAT',
-  'HANS'
+  'ABDUL', 'ANDRE', 'AUNUR', 'FEKI', 'FRANS', 'GABRIEL', 'HANS',
+  'HARDIN', 'ONYONG', 'PIYER', 'RAHMAT', 'RISKI', 'RIZKY', 'SALOMO',
+  'VAL', 'YONO', 'YUSRIL'
 ];
-
-function normalizeOfficerName(rawName?: string): PetugasName {
-  if (!rawName) return 'GABRIEL';
-  const str = String(rawName).toUpperCase().trim();
-  if (!str || str === '-' || str === 'NO' || str === 'NULL' || str === 'UNDEFINED') return 'GABRIEL';
-
-  if (str === 'ABDUL' || str.includes('ABDUL') || str.includes('DOEL')) return 'ABDUL';
-  if (str === 'ANDRE' || str.includes('ANDRE') || str.includes('ANDRI')) return 'ANDRE';
-  if (str === 'AUNUR' || str.includes('AUNUR') || str.includes('ANUR')) return 'AUNUR';
-  if (str === 'FEKI' || str.includes('FEKI') || str.includes('FEKY') || str.includes('FEKKY')) return 'FEKI';
-  if (str === 'FRANS' || str.includes('FRANS')) return 'FRANS';
-  if (str === 'GABRIEL' || str.includes('GABRIEL') || str.includes('GEBI') || str.includes('GABBY')) return 'GABRIEL';
-  if (str === 'HARDIN' || str.includes('HARDIN') || str.includes('HARDING')) return 'HARDIN';
-  if (str === 'IKBAL' || str.includes('IKBAL') || str.includes('IQBAL')) return 'IKBAL';
-  if (str === 'MELKY' || str.includes('MELKY') || str.includes('MELKI')) return 'MELKY';
-  if (str === 'NAKUL' || str.includes('NAKUL') || str.includes('NACUL')) return 'NAKUL';
-  if (str === 'ONYONG' || str.includes('ONYON') || str.includes('ONNYONG')) return 'ONYONG';
-  if (str === 'PIYER' || str.includes('PIYER') || str.includes('PIER') || str.includes('PIETER') || str.includes('PIET')) return 'PIYER';
-  if (str === 'RIZKY' || str === 'RISKI' || str.includes('RISKI') || str.includes('RISKY') || str.includes('RIZKY') || str.includes('RIZKI')) return 'RIZKY';
-  if (str === 'SALOMO' || str.includes('SALOMO') || str.includes('SALOMON')) return 'SALOMO';
-  if (str === 'VAL' || str.includes('VALEN') || str.includes('VALLEN') || str.includes('VALENTINO')) return 'VAL';
-  if (str === 'YONO' || str.includes('YONO') || str.includes('SUTIYONO')) return 'YONO';
-  if (str === 'YUSRIL' || str.includes('YUSRIL') || str.includes('USRIL')) return 'YUSRIL';
-  if (str === 'RAHMAT' || str.includes('RAHMAT') || str.includes('RAHMAD') || str.includes('MAMAD')) return 'RAHMAT';
-  if (str === 'HANS' || str.includes('HANS') || str.includes('HANZ')) return 'HANS';
-
-  const exact = PETUGAS_LIST.find(p => p === str);
-  if (exact) return exact as PetugasName;
-
-  return str as PetugasName;
-}
 
 // Helper to safely load database from disk
 function loadDb(): AppDatabase {
@@ -173,19 +126,11 @@ function loadDb(): AppDatabase {
       const parsed = JSON.parse(raw);
       let records: MeterRecord[] = parsed.records || [];
 
-      // Normalize month and officer for all loaded records
-      records = records.map(r => ({
-        ...r,
-        bulan: normalizeMonthName(r.bulan, r.tanggal),
-        petugas: normalizeOfficerName(r.petugas)
-      }));
-
-      // Check if records need auto-initialization or refresh for canonical distribution
+      // Check if records need auto-initialization
       const augustRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'AGUSTUS' || (r.tanggal || '').toUpperCase().includes('AGUSTUS'));
       const julyRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'JULI' || (r.tanggal || '').toUpperCase().includes('JULI'));
-      const septemberRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'SEPTEMBER' || (r.tanggal || '').toUpperCase().includes('SEPTEMBER'));
 
-      if (records.length < 50 || augustRecords.length === 0 || julyRecords.length === 0 || septemberRecords.length !== 108) {
+      if (records.length < 50 || augustRecords.length === 0 || julyRecords.length === 0) {
         const canonical = generateInitialRecords();
         records = canonical;
         parsed.records = canonical;
@@ -282,7 +227,15 @@ function parseCSVToRecords(csvText: string, targetMonth: string): MeterRecord[] 
     if (!rawIdpel && !rawNama) continue;
 
     const rawPetugas = (cleanCols[idxPetugas] || '').toUpperCase().trim();
-    const matchedPetugas: PetugasName = normalizeOfficerName(rawPetugas);
+    let matchedPetugas = 'GABRIEL';
+    const foundPetugas = PETUGAS_LIST.find(p => rawPetugas.includes(p) || p.includes(rawPetugas));
+    if (foundPetugas) {
+      matchedPetugas = foundPetugas;
+    } else if (rawPetugas && rawPetugas !== '-') {
+      matchedPetugas = rawPetugas;
+    } else {
+      matchedPetugas = PETUGAS_LIST[i % PETUGAS_LIST.length];
+    }
 
     const idPel = rawIdpel || `411300${Math.floor(100000 + Math.random() * 900000)}`;
     const nama = rawNama || 'Pelanggan';
@@ -422,11 +375,14 @@ function mergeRecords(sheetRecords: MeterRecord[], existingRecords: MeterRecord[
   }
 
   const combined = [...thisMonthFinal, ...otherMonthsRecords];
-  return combined.map((r) => {
+  return combined.map((r, idx) => {
     const m = normalizeMonthName(r.bulan, r.tanggal);
-    const p = normalizeOfficerName(r.petugas);
+    let p = (r.petugas || '').toUpperCase().trim();
+    const found = PETUGAS_LIST.find(pl => p.includes(pl) || pl.includes(p));
+    if (found) p = found;
+    else if (!p || p === '-') p = PETUGAS_LIST[idx % PETUGAS_LIST.length];
 
-    return { ...r, bulan: m, petugas: p };
+    return { ...r, bulan: m, petugas: p as PetugasName };
   });
 }
 
@@ -463,9 +419,9 @@ async function pullFromGoogleSheet(month: string, config: GoogleSheetConfig, cur
   // 2. Try Gviz CSV with tab name aliases
   if (!isSuccess && sheetId) {
     const tabAliases: Record<string, string[]> = {
-      'AGUSTUS': ['AGUSTUS', 'MON AGU', 'MONITORING AGUSTUS', 'MON AGUSTUS', 'Sheet1'],
-      'JULI': ['JULI', 'MON JUL', 'MONITORING JULI', 'MON JULI'],
-      'SEPTEMBER': ['SEPTEMBER', 'MON SEP', 'MONITORING SEPTEMBER', 'MON SEPTEMBER']
+      'SEPTEMBER': ['SEPTEMBER', 'SEP', 'SEPT', 'MON SEP', 'MONITORING SEPTEMBER', 'MON SEPTEMBER', 'SEPTEMBER 2026', 'SEP 2026', 'MONITORING_SEPTEMBER', 'Sheet1'],
+      'AGUSTUS': ['AGUSTUS', 'AGU', 'AUG', 'MON AGU', 'MONITORING AGUSTUS', 'MON AGUSTUS', 'AGUSTUS 2026', 'Sheet1'],
+      'JULI': ['JULI', 'JUL', 'MON JUL', 'MONITORING JULI', 'MON JULI', 'JULI 2026', 'Sheet1']
     };
 
     const candidates = tabAliases[monthUpper] || [monthUpper];
@@ -612,113 +568,6 @@ app.put('/api/records/:id', (req, res) => {
   saveDb(db);
   saveSingleRecordToFirestoreServer(db.records[idx]).catch(() => {});
   res.json({ success: true, record: db.records[idx], lastUpdated: db.lastUpdated });
-});
-
-// Calibrate or fine-tune officer target & realization counts for a specific month
-app.post('/api/officers/calibrate', (req, res) => {
-  const { month, officerName, targetSelesai, targetBelum, user } = req.body;
-  if (!officerName || typeof targetSelesai !== 'number' || typeof targetBelum !== 'number') {
-    return res.status(400).json({ error: 'Missing required parameters: month, officerName, targetSelesai, targetBelum' });
-  }
-
-  const db = loadDb();
-  const canonicalMonth = normalizeMonthName(month || 'SEPTEMBER');
-  const normalizedOfficer = normalizeOfficerName(officerName);
-
-  // Other records
-  const otherRecords = db.records.filter(r => {
-    const rMonth = normalizeMonthName(r.bulan, r.tanggal);
-    const rOfficer = normalizeOfficerName(r.petugas);
-    return !(rMonth === canonicalMonth && rOfficer === normalizedOfficer);
-  });
-
-  // Target officer records
-  const targetRecords = db.records.filter(r => {
-    const rMonth = normalizeMonthName(r.bulan, r.tanggal);
-    const rOfficer = normalizeOfficerName(r.petugas);
-    return rMonth === canonicalMonth && rOfficer === normalizedOfficer;
-  });
-
-  const updatedTargetRecords: MeterRecord[] = [];
-  const existingSelesai = targetRecords.filter(r => r.status === 'SELESAI');
-  const existingBelum = targetRecords.filter(r => r.status === 'BELUM');
-
-  // Adjust Selesai
-  for (let s = 0; s < targetSelesai; s++) {
-    if (s < existingSelesai.length) {
-      updatedTargetRecords.push(existingSelesai[s]);
-    } else {
-      const day = (s % 28) + 1;
-      const meterBaru = `86299${Math.floor(100000 + Math.random() * 900000)}`;
-      updatedTargetRecords.push({
-        id: `GM-${canonicalMonth.substring(0, 3)}-${Date.now().toString().slice(-4)}-${s}`,
-        tanggal: `${canonicalMonth} 2026 (Tgl ${day})`,
-        bulan: canonicalMonth,
-        idPelanggan: `411300${Math.floor(100000 + Math.random() * 900000)}`,
-        namaPelanggan: `Pelanggan Terganti (${normalizedOfficer})`,
-        tarif: 'R1T',
-        daya: 1300,
-        noMeterLama: `${Math.floor(32100000000 + Math.random() * 900000000)}`,
-        noMeterBaru: meterBaru,
-        noAgenda: `411300562609${Math.floor(100000 + Math.random() * 900000)}`,
-        noSnMaterialKwh: `PLN021900002240269${meterBaru.substring(2)}`,
-        noSnMaterialMcb: '-',
-        kabelTw: '-',
-        segel: '-',
-        standBongkar: '0',
-        jenis: 'PRA BAYAR',
-        gantiMeter: 'METER TUA',
-        petugas: normalizedOfficer,
-        status: 'SELESAI',
-        alamat: 'Wilayah ULP Baguala'
-      });
-    }
-  }
-
-  // Adjust Belum
-  for (let b = 0; b < targetBelum; b++) {
-    if (b < existingBelum.length) {
-      updatedTargetRecords.push(existingBelum[b]);
-    } else {
-      const day = (b % 15) + 1;
-      updatedTargetRecords.push({
-        id: `GM-${canonicalMonth.substring(0, 3)}-${Date.now().toString().slice(-4)}-BLM-${b}`,
-        tanggal: `${canonicalMonth} 2026 (Tgl ${day})`,
-        bulan: canonicalMonth,
-        idPelanggan: `411300${Math.floor(100000 + Math.random() * 900000)}`,
-        namaPelanggan: `Pelanggan Pending (${normalizedOfficer})`,
-        tarif: 'R1T',
-        daya: 1300,
-        noMeterLama: `${Math.floor(32100000000 + Math.random() * 900000000)}`,
-        noMeterBaru: '-',
-        noAgenda: `411300562609${Math.floor(100000 + Math.random() * 900000)}`,
-        noSnMaterialKwh: '-',
-        noSnMaterialMcb: '-',
-        kabelTw: '-',
-        segel: '-',
-        standBongkar: '-',
-        jenis: 'PRA BAYAR',
-        gantiMeter: 'METER GANGGUAN',
-        petugas: normalizedOfficer,
-        status: 'BELUM',
-        alamat: 'Wilayah ULP Baguala'
-      });
-    }
-  }
-
-  db.records = [...otherRecords, ...updatedTargetRecords];
-  db.logs.unshift({
-    id: `LOG-${Date.now().toString().slice(-6)}`,
-    timestamp: new Date().toLocaleString('id-ID'),
-    user: user || 'Admin',
-    action: 'CALIBRATE_OFFICER',
-    targetId: normalizedOfficer,
-    details: `Kalibrasi Petugas ${normalizedOfficer} (${canonicalMonth}): Selesai=${targetSelesai}, Belum=${targetBelum}`
-  });
-  db.logs = db.logs.slice(0, 100);
-  saveDb(db);
-
-  res.json({ success: true, records: db.records, lastUpdated: db.lastUpdated });
 });
 
 // Delete single record
@@ -890,7 +739,10 @@ app.post('/api/webhook/sheet-update', (req, res) => {
         return res.json({ success: true, message: 'Ignored empty row edit' });
       }
 
-      const matchedPetugas: PetugasName = normalizeOfficerName(rawPetugas);
+      let matchedPetugas: PetugasName = 'GABRIEL';
+      const found = PETUGAS_LIST.find(p => rawPetugas.includes(p) || p.includes(rawPetugas));
+      if (found) matchedPetugas = found as PetugasName;
+      else if (rawPetugas && rawPetugas !== '-') matchedPetugas = rawPetugas as PetugasName;
 
       const hasMeterBaru = rawNoBaru !== '' && rawNoBaru !== '-' && rawNoBaru.length >= 4;
 
@@ -1006,6 +858,7 @@ app.post('/api/webhook/sheet-update', (req, res) => {
 app.post('/api/test-sheet-connection', async (req, res) => {
   const { config } = req.body;
   const activeCfg = config || loadDb().config;
+  const targetMonth = activeCfg.selectedSheetTab || 'SEPTEMBER';
   const diagnostics: any = {
     webApp: { checked: false, success: false, message: '', count: 0 },
     gviz: { checked: false, success: false, message: '', count: 0 }
@@ -1015,7 +868,7 @@ app.post('/api/test-sheet-connection', async (req, res) => {
   if (activeCfg.webAppUrl) {
     diagnostics.webApp.checked = true;
     try {
-      const url = `${activeCfg.webAppUrl}${activeCfg.webAppUrl.includes('?') ? '&' : '?'}sheetName=AGUSTUS&t=${Date.now()}`;
+      const url = `${activeCfg.webAppUrl}${activeCfg.webAppUrl.includes('?') ? '&' : '?'}sheetName=${encodeURIComponent(targetMonth)}&t=${Date.now()}`;
       const response = await fetch(url, { signal: AbortSignal.timeout(6000) });
       diagnostics.webApp.status = response.status;
       if (response.ok) {
@@ -1024,7 +877,7 @@ app.post('/api/test-sheet-connection', async (req, res) => {
           const arr = Array.isArray(json.data) ? json.data : [];
           diagnostics.webApp.success = true;
           diagnostics.webApp.count = arr.length;
-          diagnostics.webApp.message = `Berhasil terhubung ke Web App! Ditemukan ${arr.length} baris data.`;
+          diagnostics.webApp.message = `Berhasil terhubung ke Web App tab ${targetMonth}! Ditemukan ${arr.length} baris data.`;
         } else {
           diagnostics.webApp.message = `Respon Web App: ${JSON.stringify(json).slice(0, 100)}`;
         }
@@ -1040,17 +893,17 @@ app.post('/api/test-sheet-connection', async (req, res) => {
   if (activeCfg.sheetId) {
     diagnostics.gviz.checked = true;
     try {
-      const url = `https://docs.google.com/spreadsheets/d/${activeCfg.sheetId}/gviz/tq?tqx=out:csv&sheet=AGUSTUS&t=${Date.now()}`;
+      const url = `https://docs.google.com/spreadsheets/d/${activeCfg.sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(targetMonth)}&t=${Date.now()}`;
       const response = await fetch(url, { signal: AbortSignal.timeout(6000) });
       diagnostics.gviz.status = response.status;
       if (response.ok) {
         const text = await response.text();
-        const records = parseCSVToRecords(text, 'AGUSTUS');
+        const records = parseCSVToRecords(text, targetMonth);
         diagnostics.gviz.success = records.length > 0;
         diagnostics.gviz.count = records.length;
         diagnostics.gviz.message = records.length > 0 
-          ? `Berhasil membaca Google Sheet langsung! Ditemukan ${records.length} data.`
-          : 'Google Sheet dapat diakses namun tidak ada data baris yang cocok.';
+          ? `Berhasil membaca Google Sheet langsung tab ${targetMonth}! Ditemukan ${records.length} data.`
+          : `Google Sheet tab ${targetMonth} dapat diakses namun tidak ada data baris yang cocok.`;
       } else {
         diagnostics.gviz.message = `Google Sheet mengembalikan HTTP ${response.status}. Pastikan spreadsheet dibagikan sebagai "Anyone with the link can view".`;
       }
@@ -1145,37 +998,28 @@ app.get('/api/logs', (req, res) => {
 // -------------------------------------------------------------
 // START SERVER WITH VITE MIDDLEWARE (DEV) / STATIC (PROD)
 // -------------------------------------------------------------
-async function runStartupSync() {
+async function startServer() {
+  // Perform startup sync from Google Sheet for all active months and push to Firestore
+  const initialDb = loadDb();
+  console.log('Syncing active months from Google Sheet on startup...');
   try {
-    const initialDb = loadDb();
-    console.log('Background startup sync for active months...');
     const months = ['AGUSTUS', 'JULI', 'SEPTEMBER'];
-    let currentRecords = initialDb.records;
-    let hasUpdates = false;
-
     for (const m of months) {
-      const syncRes = await pullFromGoogleSheet(m, initialDb.config, currentRecords);
+      const syncRes = await pullFromGoogleSheet(m, initialDb.config, initialDb.records);
       if (syncRes.success && syncRes.records.length > 0) {
-        currentRecords = syncRes.records;
-        hasUpdates = true;
+        initialDb.records = syncRes.records;
       }
     }
-
-    if (hasUpdates) {
-      initialDb.records = currentRecords;
-      saveDb(initialDb);
-      syncToFirestoreServer(initialDb.records).catch(() => {});
-      console.log(`Startup Google Sheet sync completed. Total records: ${initialDb.records.length}`);
-    }
+    saveDb(initialDb);
+    syncToFirestoreServer(initialDb.records).catch(() => {});
+    console.log(`Startup Google Sheet & Firestore sync completed. Total records: ${initialDb.records.length}`);
   } catch (e) {
     console.warn('Startup Google Sheet sync note:', e);
   }
-}
 
-async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
-      server: { middlewareMode: true, host: '0.0.0.0' },
+      server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -1187,13 +1031,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`⚡ PLN MBG Server running on http://0.0.0.0:${PORT}`);
-    // Run startup sync in background without blocking server ready
-    runStartupSync().catch(() => {});
-  });
-
-  // Background polling loop (auto-sync every 8 seconds for fast real-time Google Sheet synchronization)
+  // Background polling loop (auto-sync every 5 seconds for fast real-time Google Sheet synchronization)
   setInterval(async () => {
     try {
       const db = loadDb();
@@ -1222,7 +1060,11 @@ async function startServer() {
     } catch {
       // Silent catch for background interval
     }
-  }, 8000);
+  }, 5000);
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`⚡ PLN MBG Server running on http://0.0.0.0:${PORT}`);
+  });
 }
 
 startServer();

@@ -88,13 +88,39 @@ export function GoogleSheetSyncModal({
       });
 
       const data = await res.json();
-      setDiagnosticResult(data.diagnostics);
+      let isConnected = data.success;
+      let diag = data.diagnostics || {};
 
-      if (data.success) {
+      // Client-side direct verification fallback
+      if (!isConnected && extractedSheetId) {
+        try {
+          const directUrl = `https://docs.google.com/spreadsheets/d/${extractedSheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetTab)}&t=${Date.now()}`;
+          const clientRes = await fetch(directUrl);
+          if (clientRes.ok) {
+            const csv = await clientRes.text();
+            const parsed = parseCSVToRecords(csv, sheetTab);
+            if (parsed.length > 0) {
+              isConnected = true;
+              diag.gviz = {
+                checked: true,
+                success: true,
+                count: parsed.length,
+                message: `Berhasil terhubung langsung via browser! Ditemukan ${parsed.length} data baris tab ${sheetTab}.`
+              };
+            }
+          }
+        } catch {
+          // Use server diagnostics
+        }
+      }
+
+      setDiagnosticResult(diag);
+
+      if (isConnected) {
         setSyncStatusMsg({
           type: 'success',
-          text: '✅ Koneksi Google Sheet Terverifikasi Aktif!',
-          details: 'Dashboard dapat membaca data langsung dari Google Sheet Anda.'
+          text: `✅ Koneksi Google Sheet Terverifikasi Aktif (Tab ${sheetTab})!`,
+          details: 'Dashboard dapat membaca data secara langsung dan realtime dari Google Sheet Anda.'
         });
       } else {
         setSyncStatusMsg({

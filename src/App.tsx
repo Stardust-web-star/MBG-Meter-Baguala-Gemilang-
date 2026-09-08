@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Zap, Database } from 'lucide-react';
 import { getRealCurrentMonthInfo, normalizeMonthName } from './utils/monthUtils';
@@ -59,6 +59,7 @@ export default function App() {
   // Data & Google Sheets state
   const [records, setRecords] = useState<MeterRecord[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(() => getRealCurrentMonthInfo().id);
+  const activeMonthRef = useRef<string>(getRealCurrentMonthInfo().id);
   const [isGSheetModalOpen, setIsGSheetModalOpen] = useState(false);
   const [sheetConfig, setSheetConfig] = useState<GoogleSheetConfig>(getGSheetConfig());
   const [isSyncingSheet, setIsSyncingSheet] = useState(false);
@@ -86,6 +87,12 @@ export default function App() {
     }
   };
 
+  // Sync whenever selectedMonth changes
+  useEffect(() => {
+    activeMonthRef.current = selectedMonth;
+    syncMonthWithSheet(selectedMonth);
+  }, [selectedMonth]);
+
   // Initialize data on mount and set up automatic cross-device multi-laptop background sync
   useEffect(() => {
     const storedUser = getCurrentUser();
@@ -97,8 +104,9 @@ export default function App() {
     setRecords(storedRecords);
     setSheetConfig(storedCfg);
 
-    const initialMonth = storedCfg.selectedSheetTab || 'AGUSTUS';
+    const initialMonth = storedCfg.selectedSheetTab || getRealCurrentMonthInfo().id;
     setSelectedMonth(initialMonth);
+    activeMonthRef.current = initialMonth;
 
     if (storedUser) {
       setUser(storedUser);
@@ -139,7 +147,7 @@ export default function App() {
     syncMonthWithSheet(initialMonth, storedRecords);
 
     // 3. Pre-sync other months in background
-    const monthsToPreSync = ['AGUSTUS', 'JULI', 'SEPTEMBER'].filter(m => m !== initialMonth);
+    const monthsToPreSync = ['SEPTEMBER', 'AGUSTUS', 'JULI'].filter(m => m !== initialMonth);
     monthsToPreSync.forEach(m => {
       fetchAndSyncFromGoogleSheet(m, storedRecords).then(res => {
         if (res.success && res.records.length > 0) {
@@ -152,13 +160,15 @@ export default function App() {
     const intervalId = setInterval(async () => {
       const shared = await fetchSharedServerState();
       if (shared && shared.records && shared.records.length > 0) {
-        setRecords(shared.records);
+        setRecords(prev => {
+          if (prev.length !== shared.records.length) return shared.records;
+          return prev;
+        });
         if (shared.config) setSheetConfig(shared.config);
         if (shared.users) setUsers(shared.users);
       }
-      // Continuous background Google Sheet refresh
-      const cfg = getGSheetConfig();
-      const currentTab = cfg.selectedSheetTab || 'AGUSTUS';
+      // Continuous background Google Sheet refresh for currently active month
+      const currentTab = activeMonthRef.current || getGSheetConfig().selectedSheetTab || 'SEPTEMBER';
       fetchAndSyncFromGoogleSheet(currentTab, getStoredRecords()).then(res => {
         if (res.success && res.records.length > 0) {
           setRecords(res.records);
@@ -175,8 +185,8 @@ export default function App() {
         setRecords(shared.records);
         if (shared.config) setSheetConfig(shared.config);
       }
-      const cfg = getGSheetConfig();
-      syncMonthWithSheet(cfg.selectedSheetTab || 'AGUSTUS', storedRecs);
+      const currentTab = activeMonthRef.current || getGSheetConfig().selectedSheetTab || 'SEPTEMBER';
+      syncMonthWithSheet(currentTab, storedRecs);
     };
     window.addEventListener('focus', handleFocusSync);
 
