@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useDeferredValue } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MeterRecord, PetugasName } from '../types';
 import { PETUGAS_LIST } from '../data/mockData';
@@ -53,6 +53,11 @@ export function WhatsAppBroadcastModal({
   const [customText, setCustomText] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
   const [waTheme, setWaTheme] = useState<'dark' | 'light'>('dark');
+
+  // Deferred inputs for smooth 60fps typing without re-render jank
+  const deferredSenderTitle = useDeferredValue(senderTitle);
+  const deferredCustomNotes = useDeferredValue(customNotes);
+  const deferredCustomText = useDeferredValue(customText);
 
   // Available dates in dataset for the selected month
   const availableDates = useMemo(() => {
@@ -140,7 +145,7 @@ export function WhatsAppBroadcastModal({
     });
     const timeFormatted = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-    const header = `⚡ *LAPORAN PENGGANTIAN METER (MBG) 2026*\n🏛️ *PT PLN (PERSERO) ULP BAGUALA - UP3 AMBON*\n📅 Waktu Kirim: ${dateFormatted} (${timeFormatted} WIT)\n📌 Pengirim: ${senderTitle}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    const header = `⚡ *LAPORAN PENGGANTIAN METER (MBG) 2026*\n🏛️ *PT PLN (PERSERO) ULP BAGUALA - UP3 AMBON*\n📅 Waktu Kirim: ${dateFormatted} (${timeFormatted} WIT)\n📌 Pengirim: ${deferredSenderTitle}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
 
     if (template === 'daily') {
       const dateLabel = selectedDate !== 'ALL' ? selectedDate : `Periode ${targetMonth}`;
@@ -168,8 +173,8 @@ export function WhatsAppBroadcastModal({
         msg += `\n`;
       }
 
-      if (customNotes) {
-        msg += `💡 *CATATAN & INSTRUKSI LAPANGAN:*\n_${customNotes}_\n\n`;
+      if (deferredCustomNotes) {
+        msg += `💡 *CATATAN & INSTRUKSI LAPANGAN:*\n_${deferredCustomNotes}_\n\n`;
       }
 
       msg += `⚡ *PLN ULP Baguala - Transaksi Energi & K3*`;
@@ -198,8 +203,8 @@ export function WhatsAppBroadcastModal({
         msg += `\n`;
       }
 
-      if (customNotes) {
-        msg += `📝 *REKOMENDASI MANAJEMEN ULP:*\n_${customNotes}_\n\n`;
+      if (deferredCustomNotes) {
+        msg += `📝 *REKOMENDASI MANAJEMEN ULP:*\n_${deferredCustomNotes}_\n\n`;
       }
 
       msg += `Cc: Manajer ULP Baguala, Spv TE, Spv K3 & PP`;
@@ -221,8 +226,8 @@ export function WhatsAppBroadcastModal({
       msg += `• Total WO Selesai : *${stats.selesai} / ${stats.total} WO*\n`;
       msg += `• Rata-rata Kinerja : *${stats.pct}%*\n\n`;
 
-      if (customNotes) {
-        msg += `📢 *PESAN PENGAWAS LAPANGAN:*\n_${customNotes}_\n\n`;
+      if (deferredCustomNotes) {
+        msg += `📢 *PESAN PENGAWAS LAPANGAN:*\n_${deferredCustomNotes}_\n\n`;
       }
 
       msg += `Terima kasih atas kerja keras seluruh tim di lapangan! ⚡`;
@@ -255,11 +260,11 @@ export function WhatsAppBroadcastModal({
     }
 
     if (template === 'custom') {
-      return customText || `${header}\n[Ketik pesan custom Anda di kolom sebelah kiri]`;
+      return deferredCustomText || `${header}\n[Ketik pesan custom Anda di kolom sebelah kiri]`;
     }
 
     return header;
-  }, [template, targetMonth, selectedDate, senderTitle, customNotes, stats, filteredRecords, customText]);
+  }, [template, targetMonth, selectedDate, deferredSenderTitle, deferredCustomNotes, stats, filteredRecords, deferredCustomText]);
 
   if (!isOpen) return null;
 
@@ -294,13 +299,13 @@ export function WhatsAppBroadcastModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          initial={{ opacity: 0, scale: 0.98, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          transition={{ type: 'spring', duration: 0.35, bounce: 0.1 }}
-          className="relative w-full max-w-5xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]"
+          exit={{ opacity: 0, scale: 0.98, y: 12 }}
+          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+          className="relative w-full max-w-5xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh] transform-gpu will-change-transform"
         >
           {/* Top Header Banner */}
           <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-green-700 dark:from-emerald-700 dark:via-teal-800 dark:to-green-900 px-5 sm:px-6 py-4 text-white flex items-center justify-between shrink-0 shadow-md">

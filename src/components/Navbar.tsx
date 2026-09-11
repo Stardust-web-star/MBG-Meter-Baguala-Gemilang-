@@ -125,11 +125,11 @@ export function Navbar({
               <AnimatePresence mode="wait">
                 <motion.h2
                   key={activeMenuTitle}
-                  initial={{ opacity: 0, y: -6, filter: 'blur(3px)' }}
-                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                  exit={{ opacity: 0, y: 6, filter: 'blur(3px)' }}
-                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                  className="font-extrabold text-slate-800 dark:text-slate-100 tracking-tight uppercase text-xs sm:text-sm truncate drop-shadow-2xs"
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                  className="font-extrabold text-slate-800 dark:text-slate-100 tracking-tight uppercase text-xs sm:text-sm truncate drop-shadow-2xs transform-gpu"
                 >
                   {activeMenuTitle}
                 </motion.h2>

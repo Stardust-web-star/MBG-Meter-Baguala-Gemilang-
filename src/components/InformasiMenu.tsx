@@ -497,11 +497,11 @@ export function InformasiMenu({
         {activeTab === 'eksekutif' && (
           <motion.div
             key="eksekutif"
-            initial={{ opacity: 0, y: 14, scale: 0.99, filter: 'blur(4px)' }}
-            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: -10, scale: 0.99, filter: 'blur(4px)' }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="space-y-4"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="space-y-4 transform-gpu"
           >
             {/* Top Dark Navy AI Insight Card */}
             <div className="bg-gradient-to-r from-[#0d233a] via-[#102d4b] to-[#0c1f33] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-white rounded-xl p-5 border border-slate-700/60 dark:border-slate-800 shadow-md relative overflow-hidden">
@@ -1060,11 +1060,11 @@ export function InformasiMenu({
         {activeTab === 'petugas' && (
           <motion.div
             key="petugas"
-            initial={{ opacity: 0, y: 14, scale: 0.99, filter: 'blur(4px)' }}
-            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: -10, scale: 0.99, filter: 'blur(4px)' }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="space-y-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="space-y-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs transform-gpu"
           >
             {/* Header */}
             <div>
@@ -1217,11 +1217,11 @@ export function InformasiMenu({
         {activeTab === 'tarif' && (
           <motion.div
             key="tarif"
-            initial={{ opacity: 0, y: 14, scale: 0.99, filter: 'blur(4px)' }}
-            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: -10, scale: 0.99, filter: 'blur(4px)' }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="grid grid-cols-1 lg:grid-cols-12 gap-4"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="grid grid-cols-1 lg:grid-cols-12 gap-4 transform-gpu"
           >
             {/* Left: Bar Chart Distribusi Golongan Tarif */}
             <div className="lg:col-span-6 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
@@ -1308,11 +1308,11 @@ export function InformasiMenu({
         {activeTab === 'susut' && (
           <motion.div
             key="susut"
-            initial={{ opacity: 0, y: 14, scale: 0.99, filter: 'blur(4px)' }}
-            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: -10, scale: 0.99, filter: 'blur(4px)' }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="space-y-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="space-y-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs transform-gpu"
           >
             {/* Header */}
             <div>

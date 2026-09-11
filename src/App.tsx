@@ -398,11 +398,11 @@ export default function App() {
         {!currentUser ? (
           <motion.div
             key="login-view"
-            initial={{ opacity: 0, scale: 0.96, filter: 'blur(6px)' }}
-            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, scale: 1.04, filter: 'blur(12px)', y: -24 }}
-            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            className="min-h-screen w-full bg-slate-900 text-slate-100 flex items-center justify-center p-4 relative overflow-hidden"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.02, y: -16 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="min-h-screen w-full bg-slate-900 text-slate-100 flex items-center justify-center p-4 relative overflow-hidden transform-gpu"
           >
             {/* Ambient Background Glows */}
             <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-[100px] pointer-events-none" />
@@ -419,11 +419,11 @@ export default function App() {
         ) : (
           <motion.div
             key="dashboard-view"
-            initial={{ opacity: 0, scale: 0.98, filter: 'blur(10px)', y: 20 }}
-            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, filter: 'blur(10px)', y: -20 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="flex h-screen w-full bg-slate-100 dark:bg-slate-950 font-sans overflow-hidden transition-colors duration-200"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="flex h-screen w-full bg-slate-100 dark:bg-slate-950 font-sans overflow-hidden transition-colors duration-200 transform-gpu"
           >
             {/* High Density Dark Sidebar */}
             <Sidebar
@@ -484,10 +484,11 @@ export default function App() {
                     {activeMenu === 'monitoring' && (
                       <motion.div
                         key="monitoring"
-                        initial={{ opacity: 0, y: 16, scale: 0.99, filter: 'blur(4px)' }}
-                        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                        exit={{ opacity: 0, y: -12, scale: 0.99, filter: 'blur(4px)' }}
-                        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                        className="transform-gpu"
                       >
                         <MonitoringMenu
                           records={filteredMonthRecords}
@@ -504,10 +505,11 @@ export default function App() {
                     {activeMenu === 'rekap' && (
                       <motion.div
                         key="rekap"
-                        initial={{ opacity: 0, y: 16, scale: 0.99, filter: 'blur(4px)' }}
-                        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                        exit={{ opacity: 0, y: -12, scale: 0.99, filter: 'blur(4px)' }}
-                        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                        className="transform-gpu"
                       >
                         <RekapMenu
                           records={filteredMonthRecords}
@@ -526,10 +528,11 @@ export default function App() {
                     {activeMenu === 'input' && (
                       <motion.div
                         key="input"
-                        initial={{ opacity: 0, y: 16, scale: 0.99, filter: 'blur(4px)' }}
-                        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                        exit={{ opacity: 0, y: -12, scale: 0.99, filter: 'blur(4px)' }}
-                        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                        className="transform-gpu"
                       >
                         <InputDataMenu
                           onAddRecord={handleAddRecord}
@@ -541,10 +544,11 @@ export default function App() {
                     {activeMenu === 'informasi' && (
                       <motion.div
                         key="informasi"
-                        initial={{ opacity: 0, y: 16, scale: 0.99, filter: 'blur(4px)' }}
-                        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                        exit={{ opacity: 0, y: -12, scale: 0.99, filter: 'blur(4px)' }}
-                        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                        className="transform-gpu"
                       >
                         <InformasiMenu 
                           records={filteredMonthRecords} 
@@ -558,10 +562,11 @@ export default function App() {
                     {activeMenu === 'dokumen' && (
                       <motion.div
                         key="dokumen"
-                        initial={{ opacity: 0, y: 16, scale: 0.99, filter: 'blur(4px)' }}
-                        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                        exit={{ opacity: 0, y: -12, scale: 0.99, filter: 'blur(4px)' }}
-                        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                        className="transform-gpu"
                       >
                         <DokumenMenu
                           records={filteredMonthRecords}
@@ -573,10 +578,11 @@ export default function App() {
                     {activeMenu === 'management_user' && (
                       <motion.div
                         key="management_user"
-                        initial={{ opacity: 0, y: 16, scale: 0.99, filter: 'blur(4px)' }}
-                        animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-                        exit={{ opacity: 0, y: -12, scale: 0.99, filter: 'blur(4px)' }}
-                        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                        className="transform-gpu"
                       >
                         <ManagementUserMenu
                           users={users}
