@@ -27,7 +27,8 @@ export type MenuId =
   | 'input' 
   | 'informasi' 
   | 'dokumen' 
-  | 'management_user';
+  | 'management_user'
+  | 'broadcast';
 
 export interface MeterRecord {
   id: string;

@@ -10,7 +10,8 @@ import {
   LogOut,
   ChevronRight,
   Activity,
-  Zap
+  Zap,
+  Share2
 } from 'lucide-react';
 import { MeterRecord, MenuId, UserRole } from '../types';
 
@@ -74,6 +75,13 @@ export function Sidebar({
       icon: <TrendingUp className="w-5 h-5" />,
       badge: 'Analisa',
       badgeStyle: 'blue'
+    },
+    {
+      id: 'broadcast',
+      label: 'Broadcast WhatsApp',
+      icon: <Share2 className="w-5 h-5 text-emerald-300" />,
+      badge: 'WA',
+      badgeStyle: 'amber'
     },
     {
       id: 'dokumen',

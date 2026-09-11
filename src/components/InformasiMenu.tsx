@@ -21,7 +21,8 @@ import {
   BarChart3,
   Layers,
   ArrowUpRight,
-  Flame
+  Flame,
+  Share2
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -44,6 +45,7 @@ interface InformasiMenuProps {
   records: MeterRecord[];
   selectedMonth?: string;
   onSelectMonth?: (month: string) => void;
+  onOpenWABroadcast?: () => void;
 }
 
 type TabType = 'eksekutif' | 'petugas' | 'tarif' | 'susut';
@@ -52,7 +54,8 @@ type TrendViewMode = 'volume' | 'scurve' | 'velocity';
 export function InformasiMenu({ 
   records, 
   selectedMonth = 'AGUSTUS',
-  onSelectMonth
+  onSelectMonth,
+  onOpenWABroadcast
 }: InformasiMenuProps) {
   const [activeTab, setActiveTab] = useState<TabType>('eksekutif');
   const [showMonthSelect, setShowMonthSelect] = useState(false);
@@ -430,6 +433,18 @@ export function InformasiMenu({
               </div>
             )}
           </div>
+
+          {/* Broadcast WA Button */}
+          {onOpenWABroadcast && (
+            <button
+              type="button"
+              onClick={onOpenWABroadcast}
+              className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>Broadcast WA</span>
+            </button>
+          )}
 
           {/* Print Report Button */}
           <button

@@ -37,6 +37,7 @@ import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { LoginModal } from './components/LoginModal';
 import { GoogleSheetSyncModal } from './components/GoogleSheetSyncModal';
+import { WhatsAppBroadcastModal } from './components/WhatsAppBroadcastModal';
 
 import { MonitoringMenu } from './components/MonitoringMenu';
 import { RekapMenu } from './components/RekapMenu';
@@ -61,6 +62,7 @@ export default function App() {
   const [selectedMonth, setSelectedMonth] = useState(() => getRealCurrentMonthInfo().id);
   const activeMonthRef = useRef<string>(getRealCurrentMonthInfo().id);
   const [isGSheetModalOpen, setIsGSheetModalOpen] = useState(false);
+  const [isWABroadcastOpen, setIsWABroadcastOpen] = useState(false);
   const [sheetConfig, setSheetConfig] = useState<GoogleSheetConfig>(getGSheetConfig());
   const [isSyncingSheet, setIsSyncingSheet] = useState(false);
 
@@ -386,7 +388,8 @@ export default function App() {
     input: 'INPUT DATA GANTI METER',
     informasi: 'EVALUASI TERUKUR PERFORMA PENGGANTIAN KWH METER',
     dokumen: 'DOKUMEN & FORMAT CETAK',
-    management_user: 'MANAJEMEN USER & OTORISASI'
+    management_user: 'MANAJEMEN USER & OTORISASI',
+    broadcast: 'BROADCAST PESAN LAPORAN WHATSAPP'
   };
 
   return (
@@ -426,6 +429,10 @@ export default function App() {
             <Sidebar
               activeMenu={activeMenu}
               onSelectMenu={(menu) => {
+                if (menu === 'broadcast') {
+                  setIsWABroadcastOpen(true);
+                  return;
+                }
                 setActiveMenu(menu);
                 // Reset filters on deliberate menu pick
                 if (menu !== 'rekap') {
@@ -449,6 +456,7 @@ export default function App() {
                 selectedMonth={selectedMonth}
                 onSelectMonth={handleSelectMonth}
                 onOpenGSheetModal={() => setIsGSheetModalOpen(true)}
+                onOpenWABroadcast={() => setIsWABroadcastOpen(true)}
                 onTriggerManualSync={() => syncMonthWithSheet(selectedMonth)}
                 onForceResetCanonical={() => {
                   const canonical = forceResetToCanonicalData();
@@ -459,7 +467,13 @@ export default function App() {
                 onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
                 isSidebarOpen={isSidebarOpen}
                 syncStatus={sheetConfig.syncStatus}
-                onNavigateMenu={(menu) => setActiveMenu(menu)}
+                onNavigateMenu={(menu) => {
+                  if (menu === 'broadcast') {
+                    setIsWABroadcastOpen(true);
+                  } else {
+                    setActiveMenu(menu);
+                  }
+                }}
                 activeMenuTitle={menuTitleMap[activeMenu]}
               />
 
@@ -482,6 +496,7 @@ export default function App() {
                           onOpenGSheet={() => setIsGSheetModalOpen(true)}
                           onNavigateToInput={() => setActiveMenu('input')}
                           onAddQuickRecord={handleAddRecord}
+                          onOpenWABroadcast={() => setIsWABroadcastOpen(true)}
                         />
                       </motion.div>
                     )}
@@ -501,6 +516,7 @@ export default function App() {
                           onNavigateToInput={() => setActiveMenu('input')}
                           onNavigateToPrintDoc={handleNavigateToPrintDoc}
                           onOpenGSheet={() => setIsGSheetModalOpen(true)}
+                          onOpenWABroadcast={() => setIsWABroadcastOpen(true)}
                           initialPetugasFilter={filterPetugasForRekap}
                           initialStatusFilter={filterStatusForRekap}
                         />
@@ -534,6 +550,7 @@ export default function App() {
                           records={filteredMonthRecords} 
                           selectedMonth={selectedMonth}
                           onSelectMonth={setSelectedMonth}
+                          onOpenWABroadcast={() => setIsWABroadcastOpen(true)}
                         />
                       </motion.div>
                     )}
@@ -596,6 +613,14 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* WhatsApp Broadcast Generator Modal */}
+      <WhatsAppBroadcastModal
+        isOpen={isWABroadcastOpen}
+        onClose={() => setIsWABroadcastOpen(false)}
+        records={records}
+        selectedMonth={selectedMonth}
+      />
 
       {/* Google Sheet Sync & Import Modal */}
       <GoogleSheetSyncModal

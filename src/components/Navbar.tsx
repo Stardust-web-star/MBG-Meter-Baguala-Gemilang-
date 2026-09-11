@@ -17,13 +17,15 @@ import {
   Sparkles,
   Sun,
   Moon,
-  Palette
+  Palette,
+  Share2
 } from 'lucide-react';
 
 interface NavbarProps {
   currentUser: UserAccount | null;
   onLogout: () => void;
   onOpenGSheetModal: () => void;
+  onOpenWABroadcast?: () => void;
   onTriggerManualSync?: () => void;
   onForceResetCanonical?: () => void;
   isSyncingSheet?: boolean;
@@ -40,6 +42,7 @@ export function Navbar({
   currentUser,
   onLogout,
   onOpenGSheetModal,
+  onOpenWABroadcast,
   onTriggerManualSync,
   onForceResetCanonical,
   isSyncingSheet = false,
@@ -279,6 +282,23 @@ export function Navbar({
             {isDark ? 'DARK' : 'LIGHT'}
           </span>
         </motion.button>
+
+        {/* WhatsApp Broadcast Quick Button */}
+        {onOpenWABroadcast && (
+          <motion.button
+            id="btn-open-wa-broadcast-nav"
+            type="button"
+            onClick={onOpenWABroadcast}
+            whileHover={{ scale: 1.04, y: -1 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+            className="flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold transition-all shadow-xs hover:shadow-md cursor-pointer"
+            title="Buat Laporan Broadcast WhatsApp"
+          >
+            <Share2 className="w-3.5 h-3.5 text-white" />
+            <span className="hidden md:inline text-[11px]">Broadcast WA</span>
+          </motion.button>
+        )}
 
         {/* Google Sheet Direct Auto-Sync Button (1-Click Instant Background Sync) */}
         <div className="flex items-center gap-1">

@@ -15,7 +15,8 @@ import {
   ChevronRight, 
   SlidersHorizontal,
   X,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Share2
 } from 'lucide-react';
 
 interface RekapMenuProps {
@@ -25,6 +26,7 @@ interface RekapMenuProps {
   onNavigateToInput: () => void;
   onNavigateToPrintDoc: (record: MeterRecord) => void;
   onOpenGSheet: () => void;
+  onOpenWABroadcast?: () => void;
   initialPetugasFilter?: PetugasName;
   initialStatusFilter?: 'SELESAI' | 'BELUM';
 }
@@ -36,6 +38,7 @@ export function RekapMenu({
   onNavigateToInput,
   onNavigateToPrintDoc,
   onOpenGSheet,
+  onOpenWABroadcast,
   initialPetugasFilter,
   initialStatusFilter
 }: RekapMenuProps) {
@@ -150,6 +153,16 @@ export function RekapMenu({
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>Google Sheet</span>
           </button>
+
+          {onOpenWABroadcast && (
+            <button
+              onClick={onOpenWABroadcast}
+              className="px-2.5 py-1.5 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>Broadcast WA</span>
+            </button>
+          )}
 
           <button
             onClick={handleExportCSV}

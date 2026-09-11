@@ -16,7 +16,8 @@ import {
   Plus,
   Zap,
   Filter,
-  Sparkles
+  Sparkles,
+  Share2
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -36,6 +37,7 @@ interface MonitoringMenuProps {
   onOpenGSheet: () => void;
   onNavigateToInput?: () => void;
   onAddQuickRecord?: (record: Omit<MeterRecord, 'id'>) => void;
+  onOpenWABroadcast?: () => void;
 }
 
 export function MonitoringMenu({
@@ -44,7 +46,8 @@ export function MonitoringMenu({
   onDrillDown,
   onOpenGSheet,
   onNavigateToInput,
-  onAddQuickRecord
+  onAddQuickRecord,
+  onOpenWABroadcast
 }: MonitoringMenuProps) {
   const [filterView, setFilterView] = useState<'all' | 'has_pending' | 'completed_only'>('all');
   const [searchPetugas, setSearchPetugas] = useState('');
@@ -328,6 +331,18 @@ export function MonitoringMenu({
                 Selesai
               </button>
             </div>
+
+            {/* Broadcast WA Button */}
+            {onOpenWABroadcast && (
+              <button
+                onClick={onOpenWABroadcast}
+                className="text-[11px] px-2.5 py-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-bold rounded flex items-center space-x-1 shadow-2xs transition cursor-pointer"
+                title="Broadcast Laporan WhatsApp"
+              >
+                <Share2 className="w-3 h-3" />
+                <span className="hidden sm:inline">Broadcast WA</span>
+              </button>
+            )}
 
             {/* Export Button */}
             <button
