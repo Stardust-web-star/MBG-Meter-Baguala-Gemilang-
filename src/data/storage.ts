@@ -171,14 +171,9 @@ export function getStoredRecords(): MeterRecord[] {
     }
     const parsed: MeterRecord[] = JSON.parse(raw);
 
-    // Sanity check: Ensure records exist across months
-    const aug = parsed.filter(r => (r.bulan || '').toUpperCase() === 'AGUSTUS' || (r.tanggal || '').toUpperCase().includes('AGUSTUS'));
-    const juli = parsed.filter(r => (r.bulan || '').toUpperCase() === 'JULI' || (r.tanggal || '').toUpperCase().includes('JULI'));
-    const sep = parsed.filter(r => (r.bulan || '').toUpperCase() === 'SEPTEMBER' || (r.tanggal || '').toUpperCase().includes('SEPTEMBER'));
-
-    // Only auto-reconcile if database is completely empty or all months are missing
-    if (parsed.length < 50 || (aug.length === 0 && juli.length === 0 && sep.length === 0)) {
-      console.log(`[Storage] Auto-healing detected empty cache (Sep: ${sep.length}, Total: ${parsed.length}). Initializing master dataset.`);
+    // Only auto-reconcile if database is completely empty
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      console.log('[Storage] Cache empty. Initializing master dataset.');
       const canonical = generateInitialRecords();
       saveRecordsLocally(canonical);
       syncRecordsToFirestore(canonical).catch(() => {});
@@ -761,10 +756,13 @@ export function safeMergeRecords(sheetRecords: MeterRecord[], localRecords: Mete
   });
 
   // 2. Normalisasi bulan untuk record yang baru ditarik dari tab target
-  const normalizedSheetRecords = cleanSheetRecords.map(r => ({
-    ...r,
-    bulan: canonicalTarget
-  }));
+  const normalizedSheetRecords = cleanSheetRecords.map(r => {
+    const detectedMonth = normalizeMonthName(r.bulan, r.tanggal);
+    return {
+      ...r,
+      bulan: detectedMonth || canonicalTarget
+    };
+  });
 
   // 3. Pisahkan record lokal untuk bulan lain (AGUSTUS, JULI, dsb.) agar tidak hilang
   const otherMonthsLocalRecords = localRecords.filter(r => {

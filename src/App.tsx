@@ -122,7 +122,10 @@ export default function App() {
       (fsRecords) => {
         if (fsRecords && fsRecords.length > 0) {
           if (fsRecords.length >= 100) {
-            setRecords(fsRecords);
+            setRecords(prev => {
+              if (prev.length === fsRecords.length) return prev;
+              return fsRecords;
+            });
           } else {
             setRecords(prev => {
               const map = new Map<string, MeterRecord>();
@@ -139,7 +142,10 @@ export default function App() {
     // 1. Instantly pull latest state from centralized server (if other laptop made changes)
     fetchSharedServerState().then(shared => {
       if (shared && shared.records && shared.records.length > 0) {
-        setRecords(shared.records);
+        setRecords(prev => {
+          if (prev.length === shared.records.length) return prev;
+          return shared.records;
+        });
         if (shared.config) setSheetConfig(shared.config);
         if (shared.users) setUsers(shared.users);
       }
@@ -148,37 +154,24 @@ export default function App() {
     // 2. Direct Sync On Load for Google Sheet
     syncMonthWithSheet(initialMonth, storedRecords);
 
-    // 3. Pre-sync other months in background
-    const monthsToPreSync = ['SEPTEMBER', 'AGUSTUS', 'JULI'].filter(m => m !== initialMonth);
-    monthsToPreSync.forEach(m => {
-      fetchAndSyncFromGoogleSheet(m, storedRecords).then(res => {
-        if (res.success && res.records.length > 0) {
-          setRecords(res.records);
-        }
-      });
-    });
-
-    // 4. Periodic Cross-Laptop & Google Sheet Background Polling (every 3s for real-time auto-sync)
+    // 3. Periodic Cross-Laptop Sync (every 8s) - Only update if data changed
     const intervalId = setInterval(async () => {
-      const shared = await fetchSharedServerState();
-      if (shared && shared.records && shared.records.length > 0) {
-        setRecords(prev => {
-          if (prev.length !== shared.records.length) return shared.records;
-          return prev;
-        });
-        if (shared.config) setSheetConfig(shared.config);
-        if (shared.users) setUsers(shared.users);
-      }
-      // Continuous background Google Sheet refresh for currently active month
-      const currentTab = activeMonthRef.current || getGSheetConfig().selectedSheetTab || 'SEPTEMBER';
-      fetchAndSyncFromGoogleSheet(currentTab, getStoredRecords()).then(res => {
-        if (res.success && res.records.length > 0) {
-          setRecords(res.records);
+      try {
+        const shared = await fetchSharedServerState();
+        if (shared && shared.records && shared.records.length > 0) {
+          setRecords(prev => {
+            if (prev.length !== shared.records.length) return shared.records;
+            return prev;
+          });
+          if (shared.config) setSheetConfig(shared.config);
+          if (shared.users) setUsers(shared.users);
         }
-      });
-    }, 3000);
+      } catch (e) {
+        console.warn('Background sync note:', e);
+      }
+    }, 8000);
 
-    // 5. Window Focus / Tab Re-open Sync (Immediate Refresh on focus)
+    // 4. Window Focus / Tab Re-open Sync (Immediate Refresh on focus)
     const handleFocusSync = async () => {
       const storedRecs = getStoredRecords();
       setRecords(storedRecs);
@@ -192,7 +185,7 @@ export default function App() {
     };
     window.addEventListener('focus', handleFocusSync);
 
-    // 6. Cross-Tab & Cross-Window Instant Sync
+    // 5. Cross-Tab & Cross-Window Instant Sync
     const unsubscribeBus = subscribeToSyncBus((type, payload) => {
       if (type === 'RECORDS_UPDATED' && Array.isArray(payload)) {
         setRecords(payload);

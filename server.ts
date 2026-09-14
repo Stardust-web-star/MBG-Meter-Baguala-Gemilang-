@@ -126,11 +126,8 @@ function loadDb(): AppDatabase {
       const parsed = JSON.parse(raw);
       let records: MeterRecord[] = parsed.records || [];
 
-      // Check if records need auto-initialization
-      const augustRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'AGUSTUS' || (r.tanggal || '').toUpperCase().includes('AGUSTUS'));
-      const julyRecords = records.filter(r => (r.bulan || '').toUpperCase() === 'JULI' || (r.tanggal || '').toUpperCase().includes('JULI'));
-
-      if (records.length < 50 || augustRecords.length === 0 || julyRecords.length === 0) {
+      // Check if records need auto-initialization (only if database is completely empty)
+      if (!Array.isArray(records) || records.length === 0) {
         const canonical = generateInitialRecords();
         records = canonical;
         parsed.records = canonical;
@@ -345,10 +342,13 @@ function mergeRecords(sheetRecords: MeterRecord[], existingRecords: MeterRecord[
     if (!id && !nm) return false;
     if (id === 'ID PEL' || id === 'IDPEL' || id === 'ID PELANGGAN' || id === 'NO' || nm === 'NAMA' || nm === 'NAMA PELANGGAN') return false;
     return true;
-  }).map(r => ({
-    ...r,
-    bulan: canonicalMonth
-  }));
+  }).map(r => {
+    const detected = normalizeMonthName(r.bulan, r.tanggal);
+    return {
+      ...r,
+      bulan: detected || canonicalMonth
+    };
+  });
 
   // Keep records from ALL OTHER months completely untouched
   const otherMonthsRecords = existingRecords.filter(r => {
