@@ -1,10 +1,9 @@
 import { MeterRecord, UserAccount, GoogleSheetConfig, ActivityLog, PetugasName } from '../types';
 import { generateInitialRecords, DEFAULT_USERS, PETUGAS_LIST } from './mockData';
 import { normalizeMonthName } from '../utils/monthUtils';
-import { syncRecordsToFirestore, saveSingleRecordToFirestore } from '../lib/firebase';
 
 const STORAGE_KEYS = {
-  RECORDS: 'pln_mbg_meter_records_v15_master_266_sep_safe',
+  RECORDS: 'pln_mbg_meter_records_v17_master_265_pure_gsheet',
   USERS: 'pln_mbg_users_v2',
   CURRENT_USER: 'pln_mbg_current_user_v1',
   GSHEET_CONFIG: 'pln_mbg_gsheet_config_v2',
@@ -105,6 +104,8 @@ function cleanupLegacyStorageKeys(): void {
       'pln_mbg_meter_records_v12_canonical_sep103',
       'pln_mbg_meter_records_v13_master_264',
       'pln_mbg_meter_records_v14_master_951_sep266',
+      'pln_mbg_meter_records_v15_master_266_sep_safe',
+      'pln_mbg_meter_records_v16_master_265_pure_gsheet',
       'pln_mbg_records',
       'meterRecords'
     ];
@@ -147,7 +148,6 @@ export function forceResetToCanonicalData(): MeterRecord[] {
   cleanupLegacyStorageKeys();
   const canonical = generateInitialRecords();
   saveRecordsLocally(canonical);
-  syncRecordsToFirestore(canonical).catch(() => {});
   fetch('/api/records', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -163,7 +163,6 @@ export function getStoredRecords(): MeterRecord[] {
     if (!raw) {
       const initial = generateInitialRecords();
       saveRecordsLocally(initial);
-      syncRecordsToFirestore(initial).catch(() => {});
       // Trigger background sync to server
       fetch('/api/records', {
         method: 'POST',
@@ -176,10 +175,18 @@ export function getStoredRecords(): MeterRecord[] {
 
     // Auto-reconcile if database is empty or contains outdated cache (< 950 records)
     if (!Array.isArray(parsed) || parsed.length < 950) {
-      console.log('[Storage] Cache outdated or empty. Upgrading to master dataset (951 records).');
+      console.log('[Storage] Cache outdated or empty. Upgrading to master dataset (950 records).');
       const canonical = generateInitialRecords();
       saveRecordsLocally(canonical);
-      syncRecordsToFirestore(canonical).catch(() => {});
+      return canonical;
+    }
+
+    // Auto-reconcile if cache contains old 401 records glitch
+    const sepRecords = parsed.filter(r => (r.bulan || '').toUpperCase() === 'SEPTEMBER');
+    if (sepRecords.length > 275) {
+      console.log('[Storage] Glitched September cache detected (>275). Resetting to pure master dataset.');
+      const canonical = generateInitialRecords();
+      saveRecordsLocally(canonical);
       return canonical;
     }
 
@@ -192,7 +199,6 @@ export function getStoredRecords(): MeterRecord[] {
 
 export function saveRecords(records: MeterRecord[]): void {
   saveRecordsLocally(records);
-  syncRecordsToFirestore(records).catch(() => {});
   // Persist to centralized server so other laptops receive it
   fetch('/api/records', {
     method: 'POST',
@@ -212,7 +218,6 @@ export function addMeterRecord(record: Omit<MeterRecord, 'id'>, currentUser?: st
   };
   const updated = [fullRecord, ...records];
   saveRecordsLocally(updated);
-  saveSingleRecordToFirestore(fullRecord).catch(() => {});
   logActivity(currentUser || 'Admin', 'INPUT_DATA', fullRecord.id, `Input ganti meter IDPEL: ${fullRecord.idPelanggan} (${fullRecord.namaPelanggan})`);
   
   // Sync to server
@@ -236,7 +241,6 @@ export function updateMeterRecord(id: string, updates: Partial<MeterRecord>, cur
     updatedAt: new Date().toISOString()
   };
   saveRecordsLocally(records);
-  saveSingleRecordToFirestore(records[index]).catch(() => {});
   logActivity(currentUser || 'Admin', 'UPDATE_DATA', id, `Update data IDPEL: ${records[index].idPelanggan}`);
 
   // Sync to server
@@ -807,7 +811,7 @@ export function safeMergeRecords(sheetRecords: MeterRecord[], localRecords: Mete
 
   // 5. Final normalisasi bulan dan petugas
   return allMerged.map((r, idx) => {
-    const month = normalizeMonthName(r.bulan, r.tanggal);
+    const month = normalizeMonthName(r.bulan, r.tanggal) || r.bulan || canonicalTarget;
 
     let normPetugas = (r.petugas || '').toUpperCase().trim();
     const matched = PETUGAS_LIST.find(p => normPetugas.includes(p) || p.includes(normPetugas));

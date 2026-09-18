@@ -31,7 +31,6 @@ import {
   syncUpdateRecordToSheetBackground,
   forceResetToCanonicalData
 } from './data/storage';
-import { subscribeToRealtimeRecords, testFirestoreConnection } from './lib/firebase';
 
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
@@ -116,29 +115,6 @@ export default function App() {
       setIsLoginModalOpen(true);
     }
 
-    // Initialize Firebase Firestore connection test & real-time onSnapshot listener
-    testFirestoreConnection();
-    const unsubscribeFirestore = subscribeToRealtimeRecords(
-      (fsRecords) => {
-        if (fsRecords && fsRecords.length > 0) {
-          if (fsRecords.length >= 100) {
-            setRecords(prev => {
-              if (JSON.stringify(prev) === JSON.stringify(fsRecords)) return prev;
-              return fsRecords;
-            });
-          } else {
-            setRecords(prev => {
-              const map = new Map<string, MeterRecord>();
-              prev.forEach(r => { if (r.id) map.set(String(r.id), r); });
-              fsRecords.forEach(r => { if (r.id) map.set(String(r.id), r); });
-              return Array.from(map.values());
-            });
-          }
-        }
-      },
-      (err) => console.warn('[Firestore Realtime Note]:', err)
-    );
-
     // 1. Instantly pull latest state from centralized server (if other laptop made changes)
     fetchSharedServerState().then(shared => {
       if (shared && shared.records && shared.records.length > 0) {
@@ -212,7 +188,6 @@ export default function App() {
       window.removeEventListener('focus', handleFocusSync);
       window.removeEventListener('storage', handleStorageChange);
       unsubscribeBus();
-      unsubscribeFirestore();
     };
   }, []);
 

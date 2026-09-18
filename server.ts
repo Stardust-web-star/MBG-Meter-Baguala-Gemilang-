@@ -2,56 +2,21 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, writeBatch } from 'firebase/firestore';
-import firebaseConfig from './firebase-applet-config.json';
 import { generateInitialRecords } from './src/data/mockData';
 import { MeterRecord, GoogleSheetConfig, UserAccount, ActivityLog, PetugasName } from './src/types';
 
 const app = express();
 const PORT = 3000;
 
-// Initialize Firebase App & Firestore on Server
-const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-const firestoreDb = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
-
 /**
- * Server-side helper to push records to Firestore for instant real-time synchronization
+ * Empty no-op stubs (Firebase completely removed per user instruction)
  */
-async function syncToFirestoreServer(records: MeterRecord[]): Promise<void> {
-  if (!records || records.length === 0) return;
-  try {
-    const BATCH_SIZE = 450;
-    for (let i = 0; i < records.length; i += BATCH_SIZE) {
-      const chunk = records.slice(i, i + BATCH_SIZE);
-      const batch = writeBatch(firestoreDb);
-      chunk.forEach(r => {
-        if (r.id) {
-          const docRef = doc(firestoreDb, 'meter_records', String(r.id));
-          batch.set(docRef, {
-            ...r,
-            updatedAt: r.updatedAt || new Date().toISOString()
-          }, { merge: true });
-        }
-      });
-      await batch.commit();
-    }
-  } catch (err) {
-    console.error('[Server Firestore Sync Note]:', err);
-  }
+async function syncToFirestoreServer(_records: MeterRecord[]): Promise<void> {
+  return;
 }
 
-async function saveSingleRecordToFirestoreServer(record: MeterRecord): Promise<void> {
-  if (!record || !record.id) return;
-  try {
-    const docRef = doc(firestoreDb, 'meter_records', String(record.id));
-    await setDoc(docRef, {
-      ...record,
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-  } catch (err) {
-    console.error('[Server Firestore Single Record Note]:', err);
-  }
+async function saveSingleRecordToFirestoreServer(_record: MeterRecord): Promise<void> {
+  return;
 }
 
 app.use(express.json({ limit: '50mb' }));
