@@ -123,7 +123,7 @@ export default function App() {
         if (fsRecords && fsRecords.length > 0) {
           if (fsRecords.length >= 100) {
             setRecords(prev => {
-              if (prev.length === fsRecords.length) return prev;
+              if (JSON.stringify(prev) === JSON.stringify(fsRecords)) return prev;
               return fsRecords;
             });
           } else {
@@ -143,7 +143,7 @@ export default function App() {
     fetchSharedServerState().then(shared => {
       if (shared && shared.records && shared.records.length > 0) {
         setRecords(prev => {
-          if (prev.length === shared.records.length) return prev;
+          if (JSON.stringify(prev) === JSON.stringify(shared.records)) return prev;
           return shared.records;
         });
         if (shared.config) setSheetConfig(shared.config);
@@ -160,8 +160,8 @@ export default function App() {
         const shared = await fetchSharedServerState();
         if (shared && shared.records && shared.records.length > 0) {
           setRecords(prev => {
-            if (prev.length !== shared.records.length) return shared.records;
-            return prev;
+            if (JSON.stringify(prev) === JSON.stringify(shared.records)) return prev;
+            return shared.records;
           });
           if (shared.config) setSheetConfig(shared.config);
           if (shared.users) setUsers(shared.users);

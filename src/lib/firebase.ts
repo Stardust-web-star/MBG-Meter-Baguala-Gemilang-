@@ -39,8 +39,22 @@ export interface FirestoreErrorInfo {
   };
 }
 
+let isQuotaExceededFlag = false;
+
+export function isFirestoreQuotaExceeded(): boolean {
+  return isQuotaExceededFlag;
+}
+
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errMessage = error instanceof Error ? error.message : String(error);
+  const isQuotaError = errMessage.includes('Quota exceeded') || errMessage.includes('resource-exhausted') || errMessage.includes('RESOURCE_EXHAUSTED');
+  
+  if (isQuotaError) {
+    isQuotaExceededFlag = true;
+    console.warn('[Firestore Quota Guard]: Free daily tier quota reached. Pausing Firestore write streams. App will use local and server storage.');
+    return;
+  }
+
   const errInfo: FirestoreErrorInfo = {
     error: errMessage,
     authInfo: {
@@ -51,27 +65,23 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path
   };
 
-  const isQuotaError = errMessage.includes('Quota exceeded') || errMessage.includes('resource-exhausted');
-  if (isQuotaError) {
-    console.warn('[Firestore Quota Warning]: Free daily limit reached. Application will operate seamlessly using local storage and server cache.');
-    return;
-  }
-
   console.error('[Firestore Error]:', JSON.stringify(errInfo));
 }
 
 // Test Connection on load
 export async function testFirestoreConnection(): Promise<boolean> {
+  if (isQuotaExceededFlag) return false;
   try {
     await getDocFromServer(doc(db, 'system_config', 'connection_test'));
     console.log('[Firestore] Connection test succeeded');
     return true;
   } catch (error) {
     const errStr = error instanceof Error ? error.message : String(error);
-    if (errStr.includes('the client is offline')) {
-      console.warn('[Firestore] Client is offline, operating with local cache.');
-    } else if (errStr.includes('Quota exceeded') || errStr.includes('resource-exhausted')) {
+    if (errStr.includes('Quota exceeded') || errStr.includes('resource-exhausted') || errStr.includes('RESOURCE_EXHAUSTED')) {
+      isQuotaExceededFlag = true;
       console.warn('[Firestore] Quota limit reached, operating with local master dataset.');
+    } else if (errStr.includes('the client is offline')) {
+      console.warn('[Firestore] Client is offline, operating with local cache.');
     } else {
       console.log('[Firestore] Connection initialized.');
     }
@@ -101,7 +111,8 @@ export function subscribeToRealtimeRecords(
     },
     (error) => {
       const errStr = error instanceof Error ? error.message : String(error);
-      if (errStr.includes('Quota exceeded') || errStr.includes('resource-exhausted')) {
+      if (errStr.includes('Quota exceeded') || errStr.includes('resource-exhausted') || errStr.includes('RESOURCE_EXHAUSTED')) {
+        isQuotaExceededFlag = true;
         console.warn('[Firestore Realtime]: Daily free quota limit reached. Falling back to local data store.');
       } else {
         console.error('[Firestore Realtime Error]:', error);
@@ -117,12 +128,13 @@ export function subscribeToRealtimeRecords(
  * Sync a list of records to Firestore in batches (real-time push)
  */
 export async function syncRecordsToFirestore(records: MeterRecord[]): Promise<void> {
-  if (!records || records.length === 0) return;
+  if (!records || records.length === 0 || isQuotaExceededFlag) return;
   
   try {
     // Firestore batch limits to 500 writes per batch
     const BATCH_SIZE = 450;
     for (let i = 0; i < records.length; i += BATCH_SIZE) {
+      if (isQuotaExceededFlag) break;
       const chunk = records.slice(i, i + BATCH_SIZE);
       const batch = writeBatch(db);
       
@@ -141,8 +153,9 @@ export async function syncRecordsToFirestore(records: MeterRecord[]): Promise<vo
     console.log(`[Firestore] Successfully synchronized ${records.length} records to Firestore.`);
   } catch (err) {
     const errStr = err instanceof Error ? err.message : String(err);
-    if (errStr.includes('Quota exceeded') || errStr.includes('resource-exhausted')) {
-      console.warn('[Firestore Write Note]: Daily free write quota reached. Changes saved to local storage.');
+    if (errStr.includes('Quota exceeded') || errStr.includes('resource-exhausted') || errStr.includes('RESOURCE_EXHAUSTED')) {
+      isQuotaExceededFlag = true;
+      console.warn('[Firestore Write Note]: Daily free write quota reached. Changes saved to local storage and server.');
     } else {
       console.error('[Firestore Write Error]:', err);
       handleFirestoreError(err, OperationType.WRITE, 'meter_records');
@@ -154,7 +167,7 @@ export async function syncRecordsToFirestore(records: MeterRecord[]): Promise<vo
  * Save a single record real-time to Firestore
  */
 export async function saveSingleRecordToFirestore(record: MeterRecord): Promise<void> {
-  if (!record || !record.id) return;
+  if (!record || !record.id || isQuotaExceededFlag) return;
   try {
     const docRef = doc(db, 'meter_records', String(record.id));
     await setDoc(docRef, {
@@ -164,7 +177,8 @@ export async function saveSingleRecordToFirestore(record: MeterRecord): Promise<
     console.log(`[Firestore] Record ${record.id} saved real-time.`);
   } catch (err) {
     const errStr = err instanceof Error ? err.message : String(err);
-    if (errStr.includes('Quota exceeded') || errStr.includes('resource-exhausted')) {
+    if (errStr.includes('Quota exceeded') || errStr.includes('resource-exhausted') || errStr.includes('RESOURCE_EXHAUSTED')) {
+      isQuotaExceededFlag = true;
       console.warn(`[Firestore Save Note]: Quota limit reached for ${record.id}. Saved to local storage.`);
     } else {
       console.error('[Firestore Single Record Error]:', err);

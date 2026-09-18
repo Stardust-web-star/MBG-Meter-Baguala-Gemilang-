@@ -4,7 +4,7 @@ import { normalizeMonthName } from '../utils/monthUtils';
 import { syncRecordsToFirestore, saveSingleRecordToFirestore } from '../lib/firebase';
 
 const STORAGE_KEYS = {
-  RECORDS: 'pln_mbg_meter_records_v13_master_264',
+  RECORDS: 'pln_mbg_meter_records_v14_master_951_sep266',
   USERS: 'pln_mbg_users_v2',
   CURRENT_USER: 'pln_mbg_current_user_v1',
   GSHEET_CONFIG: 'pln_mbg_gsheet_config_v2',
@@ -103,6 +103,7 @@ function cleanupLegacyStorageKeys(): void {
       'pln_mbg_meter_records_v10',
       'pln_mbg_meter_records_v11_master_synced',
       'pln_mbg_meter_records_v12_canonical_sep103',
+      'pln_mbg_meter_records_v13_master_264',
       'pln_mbg_records',
       'meterRecords'
     ];
@@ -172,9 +173,9 @@ export function getStoredRecords(): MeterRecord[] {
     }
     const parsed: MeterRecord[] = JSON.parse(raw);
 
-    // Auto-reconcile if database is empty or contains outdated cache (< 900 records)
-    if (!Array.isArray(parsed) || parsed.length < 900) {
-      console.log('[Storage] Cache outdated or empty. Upgrading to master dataset (949 records).');
+    // Auto-reconcile if database is empty or contains outdated cache (< 950 records)
+    if (!Array.isArray(parsed) || parsed.length < 950) {
+      console.log('[Storage] Cache outdated or empty. Upgrading to master dataset (951 records).');
       const canonical = generateInitialRecords();
       saveRecordsLocally(canonical);
       syncRecordsToFirestore(canonical).catch(() => {});
