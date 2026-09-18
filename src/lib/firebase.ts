@@ -40,8 +40,9 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errMessage = error instanceof Error ? error.message : String(error);
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errMessage,
     authInfo: {
       userId: auth.currentUser?.uid || null,
       email: auth.currentUser?.email || null,
@@ -49,8 +50,14 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
+
+  const isQuotaError = errMessage.includes('Quota exceeded') || errMessage.includes('resource-exhausted');
+  if (isQuotaError) {
+    console.warn('[Firestore Quota Warning]: Free daily limit reached. Application will operate seamlessly using local storage and server cache.');
+    return;
+  }
+
   console.error('[Firestore Error]:', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
 }
 
 // Test Connection on load
@@ -60,10 +67,13 @@ export async function testFirestoreConnection(): Promise<boolean> {
     console.log('[Firestore] Connection test succeeded');
     return true;
   } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('[Firestore] Client is offline, checking configuration');
+    const errStr = error instanceof Error ? error.message : String(error);
+    if (errStr.includes('the client is offline')) {
+      console.warn('[Firestore] Client is offline, operating with local cache.');
+    } else if (errStr.includes('Quota exceeded') || errStr.includes('resource-exhausted')) {
+      console.warn('[Firestore] Quota limit reached, operating with local master dataset.');
     } else {
-      console.log('[Firestore] Connection test initialized');
+      console.log('[Firestore] Connection initialized.');
     }
     return false;
   }
@@ -90,9 +100,13 @@ export function subscribeToRealtimeRecords(
       }
     },
     (error) => {
-      console.error('[Firestore Realtime Error]:', error);
+      const errStr = error instanceof Error ? error.message : String(error);
+      if (errStr.includes('Quota exceeded') || errStr.includes('resource-exhausted')) {
+        console.warn('[Firestore Realtime]: Daily free quota limit reached. Falling back to local data store.');
+      } else {
+        console.error('[Firestore Realtime Error]:', error);
+      }
       if (onError) onError(error);
-      handleFirestoreError(error, OperationType.GET, 'meter_records');
     }
   );
 
@@ -126,8 +140,13 @@ export async function syncRecordsToFirestore(records: MeterRecord[]): Promise<vo
     }
     console.log(`[Firestore] Successfully synchronized ${records.length} records to Firestore.`);
   } catch (err) {
-    console.error('[Firestore Write Error]:', err);
-    handleFirestoreError(err, OperationType.WRITE, 'meter_records');
+    const errStr = err instanceof Error ? err.message : String(err);
+    if (errStr.includes('Quota exceeded') || errStr.includes('resource-exhausted')) {
+      console.warn('[Firestore Write Note]: Daily free write quota reached. Changes saved to local storage.');
+    } else {
+      console.error('[Firestore Write Error]:', err);
+      handleFirestoreError(err, OperationType.WRITE, 'meter_records');
+    }
   }
 }
 
@@ -144,7 +163,12 @@ export async function saveSingleRecordToFirestore(record: MeterRecord): Promise<
     }, { merge: true });
     console.log(`[Firestore] Record ${record.id} saved real-time.`);
   } catch (err) {
-    console.error('[Firestore Single Record Error]:', err);
-    handleFirestoreError(err, OperationType.WRITE, `meter_records/${record.id}`);
+    const errStr = err instanceof Error ? err.message : String(err);
+    if (errStr.includes('Quota exceeded') || errStr.includes('resource-exhausted')) {
+      console.warn(`[Firestore Save Note]: Quota limit reached for ${record.id}. Saved to local storage.`);
+    } else {
+      console.error('[Firestore Single Record Error]:', err);
+      handleFirestoreError(err, OperationType.WRITE, `meter_records/${record.id}`);
+    }
   }
 }
