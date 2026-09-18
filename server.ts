@@ -326,12 +326,12 @@ function normalizeMonthName(monthStr?: string, dateStr?: string): string {
   if (combined.includes('/11/') || combined.includes('-11-') || combined.includes('.11.') || combined.endsWith('/11')) return 'NOVEMBER';
   if (combined.includes('/12/') || combined.includes('-12-') || combined.includes('.12.') || combined.endsWith('/12')) return 'DESEMBER';
 
-  return 'SEPTEMBER';
+  return '';
 }
 
 // Merge records safely
 function mergeRecords(sheetRecords: MeterRecord[], existingRecords: MeterRecord[], targetMonth: string): MeterRecord[] {
-  const canonicalMonth = normalizeMonthName(targetMonth);
+  const canonicalMonth = normalizeMonthName(targetMonth) || targetMonth.toUpperCase() || 'SEPTEMBER';
 
   // Filter out invalid/header records and ensure correct canonical month
   const cleanSheet = sheetRecords.filter(r => {
@@ -354,23 +354,26 @@ function mergeRecords(sheetRecords: MeterRecord[], existingRecords: MeterRecord[
     return rMonth !== canonicalMonth;
   });
 
+  // Strictly filter cleanSheet records to ONLY include records belonging to canonicalMonth
+  const targetCleanSheet = cleanSheet.filter(r => r.bulan === canonicalMonth);
+
   // Preserve user created records that are not in sheet
   let thisMonthFinal: MeterRecord[] = [];
-  if (cleanSheet.length > 0) {
-    const sheetIds = new Set(cleanSheet.map(r => String(r.idPelanggan).trim()));
-    const sheetAgendas = new Set(cleanSheet.map(r => String(r.noAgenda).trim()));
+  if (targetCleanSheet.length > 0) {
+    const sheetIds = new Set(targetCleanSheet.map(r => String(r.idPelanggan).trim()));
+    const sheetAgendas = new Set(targetCleanSheet.map(r => String(r.noAgenda).trim()));
 
     const userCreated = existingRecords.filter(r => {
       const rMonth = normalizeMonthName(r.bulan, r.tanggal);
       if (rMonth !== canonicalMonth) return false;
-      const isMock = r.id.startsWith('GM-2026') || r.id.startsWith('IMP-');
+      const isMock = r.id.startsWith('GM-2026') || r.id.startsWith('IMP-') || r.id.startsWith('GS-');
       if (isMock) return false;
       const id = String(r.idPelanggan).trim();
       const agenda = String(r.noAgenda).trim();
       return !(id && sheetIds.has(id)) && !(agenda && agenda !== '-' && sheetAgendas.has(agenda));
     });
 
-    thisMonthFinal = [...cleanSheet, ...userCreated];
+    thisMonthFinal = [...targetCleanSheet, ...userCreated];
   } else {
     thisMonthFinal = existingRecords.filter(r => {
       return normalizeMonthName(r.bulan, r.tanggal) === canonicalMonth;

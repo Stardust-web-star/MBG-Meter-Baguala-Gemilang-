@@ -4,7 +4,7 @@ import { normalizeMonthName } from '../utils/monthUtils';
 import { syncRecordsToFirestore, saveSingleRecordToFirestore } from '../lib/firebase';
 
 const STORAGE_KEYS = {
-  RECORDS: 'pln_mbg_meter_records_v14_master_951_sep266',
+  RECORDS: 'pln_mbg_meter_records_v15_master_266_sep_safe',
   USERS: 'pln_mbg_users_v2',
   CURRENT_USER: 'pln_mbg_current_user_v1',
   GSHEET_CONFIG: 'pln_mbg_gsheet_config_v2',
@@ -104,6 +104,7 @@ function cleanupLegacyStorageKeys(): void {
       'pln_mbg_meter_records_v11_master_synced',
       'pln_mbg_meter_records_v12_canonical_sep103',
       'pln_mbg_meter_records_v13_master_264',
+      'pln_mbg_meter_records_v14_master_951_sep266',
       'pln_mbg_records',
       'meterRecords'
     ];
@@ -742,7 +743,7 @@ export function parseCSVToRecords(csvText: string, targetMonth: string = 'SEPTEM
  * Smart safe merge: Menggabungkan data dari Google Sheet dan data lokal
  */
 export function safeMergeRecords(sheetRecords: MeterRecord[], localRecords: MeterRecord[], fallbackMonth?: string): MeterRecord[] {
-  const canonicalTarget = normalizeMonthName(fallbackMonth || 'SEPTEMBER');
+  const canonicalTarget = normalizeMonthName(fallbackMonth) || fallbackMonth?.toUpperCase() || 'SEPTEMBER';
 
   // 1. Bersihkan baris header atau baris kosong yang masuk dari Google Sheet
   const cleanSheetRecords = sheetRecords.filter(r => {
@@ -772,19 +773,20 @@ export function safeMergeRecords(sheetRecords: MeterRecord[], localRecords: Mete
     return rMonthNorm !== canonicalTarget;
   });
 
-  // 4. Jika sheetRecords memiliki data riil dari Google Sheet untuk canonicalTarget,
-  // gunakan data sheet tersebut untuk bulan target, ditambah input lokal manual oleh user (jika ada)
-  let mergedForTargetMonth: MeterRecord[] = [];
-  if (normalizedSheetRecords.length > 0) {
-    const sheetIdpels = new Set(normalizedSheetRecords.map(r => String(r.idPelanggan).trim()));
-    const sheetAgendas = new Set(normalizedSheetRecords.map(r => String(r.noAgenda).trim()));
+  // 4. Strictly filter sheetRecords agar HANYA memasukkan record yang benar-benar milik canonicalTarget
+  const targetSheetRecords = normalizedSheetRecords.filter(r => r.bulan === canonicalTarget);
 
-    // Pertahankan input manual baru dari user (yang dibuat via form input dan bukan mock)
+  let mergedForTargetMonth: MeterRecord[] = [];
+  if (targetSheetRecords.length > 0) {
+    const sheetIdpels = new Set(targetSheetRecords.map(r => String(r.idPelanggan).trim()));
+    const sheetAgendas = new Set(targetSheetRecords.map(r => String(r.noAgenda).trim()));
+
+    // Pertahankan input manual baru dari user (yang dibuat via form input dan bukan mock/seed)
     const userCreatedLocal = localRecords.filter(r => {
       const rMonthNorm = normalizeMonthName(r.bulan, r.tanggal);
       if (rMonthNorm !== canonicalTarget) return false;
 
-      const isSeedMock = r.id.startsWith('GM-2026') || r.id.startsWith('IMP-');
+      const isSeedMock = r.id.startsWith('GM-2026') || r.id.startsWith('IMP-') || r.id.startsWith('GS-');
       if (isSeedMock) return false;
 
       const idpel = String(r.idPelanggan).trim();
@@ -793,9 +795,9 @@ export function safeMergeRecords(sheetRecords: MeterRecord[], localRecords: Mete
       return !existsInSheet;
     });
 
-    mergedForTargetMonth = [...normalizedSheetRecords, ...userCreatedLocal];
+    mergedForTargetMonth = [...targetSheetRecords, ...userCreatedLocal];
   } else {
-    // Jika data dari sheet kosong/gagal, pertahankan data lokal yang ada
+    // Jika data dari sheet untuk bulan target kosong/salah tab, pertahankan data lokal yang ada
     mergedForTargetMonth = localRecords.filter(r => {
       return normalizeMonthName(r.bulan, r.tanggal) === canonicalTarget;
     });

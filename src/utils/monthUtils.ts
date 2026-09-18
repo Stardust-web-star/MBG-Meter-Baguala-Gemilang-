@@ -59,7 +59,7 @@ export function normalizeMonthName(monthStr?: string, dateStr?: string): string 
   if (combined.includes('/11/') || combined.includes('-11-') || combined.includes('.11.') || combined.endsWith('/11')) return 'NOVEMBER';
   if (combined.includes('/12/') || combined.includes('-12-') || combined.includes('.12.') || combined.endsWith('/12')) return 'DESEMBER';
 
-  return 'SEPTEMBER';
+  return '';
 }
 
 export function getRealCurrentMonthInfo(): { id: string; name: string; year: string; monthIndex: number } {
