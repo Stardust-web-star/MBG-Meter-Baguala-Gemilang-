@@ -29,39 +29,35 @@ export const INDONESIAN_MONTHS = [
  * Normalizes any tab name, date string, or month identifier into a clean standard Indonesian month string (JULI, AGUSTUS, SEPTEMBER, etc.)
  */
 export function normalizeMonthName(monthStr?: string, dateStr?: string): string {
-  // 1. Check dateStr FIRST if it contains explicit month keywords
-  const d = String(dateStr || '').toUpperCase().trim();
-  if (d) {
-    if (d.includes('SEP') || d.includes('SEPT') || d.includes('/09/') || d.includes('-09-') || d.includes('.09.') || d.endsWith('/09') || d.includes(' 9 ') || d.includes('/9/')) return 'SEPTEMBER';
-    if (d.includes('AGU') || d.includes('AUG') || d.includes('/08/') || d.includes('-08-') || d.includes('.08.') || d.endsWith('/08') || d.includes(' 8 ') || d.includes('/8/')) return 'AGUSTUS';
-    if (d.includes('JUL') || d.includes('/07/') || d.includes('-07-') || d.includes('.07.') || d.endsWith('/07') || d.includes(' 7 ') || d.includes('/7/')) return 'JULI';
-    if (d.includes('JUN') || d.includes('/06/') || d.includes('-06-') || d.includes('.06.')) return 'JUNI';
-    if (d.includes('MEI') || d.includes('MAY') || d.includes('/05/') || d.includes('-05-')) return 'MEI';
-    if (d.includes('APR') || d.includes('/04/') || d.includes('-04-')) return 'APRIL';
-    if (d.includes('MAR') || d.includes('/03/') || d.includes('-03-')) return 'MARET';
-    if (d.includes('FEB') || d.includes('/02/') || d.includes('-02-')) return 'FEBRUARI';
-    if (d.includes('JAN') || d.includes('/01/') || d.includes('-01-')) return 'JANUARI';
-    if (d.includes('OKT') || d.includes('OCT') || d.includes('/10/') || d.includes('-10-')) return 'OKTOBER';
-    if (d.includes('NOV') || d.includes('/11/') || d.includes('-11-')) return 'NOVEMBER';
-    if (d.includes('DES') || d.includes('DEC') || d.includes('/12/') || d.includes('-12-')) return 'DESEMBER';
-  }
+  const combined = (String(dateStr || '') + ' ' + String(monthStr || '')).toUpperCase().trim();
 
-  // 2. Check monthStr if dateStr didn't specify an explicit month
-  const m = String(monthStr || '').toUpperCase().trim();
-  if (m) {
-    if (m.includes('SEP') || m.includes('SEPT')) return 'SEPTEMBER';
-    if (m.includes('AGU') || m.includes('AUG')) return 'AGUSTUS';
-    if (m.includes('JUL')) return 'JULI';
-    if (m.includes('JUN')) return 'JUNI';
-    if (m.includes('MEI') || m.includes('MAY')) return 'MEI';
-    if (m.includes('APR')) return 'APRIL';
-    if (m.includes('MAR')) return 'MARET';
-    if (m.includes('FEB')) return 'FEBRUARI';
-    if (m.includes('JAN')) return 'JANUARI';
-    if (m.includes('OKT') || m.includes('OCT')) return 'OKTOBER';
-    if (m.includes('NOV')) return 'NOVEMBER';
-    if (m.includes('DES') || m.includes('DEC')) return 'DESEMBER';
-  }
+  // 1. Text word matching FIRST across dateStr and monthStr
+  if (combined.includes('SEPT') || combined.includes('SEP')) return 'SEPTEMBER';
+  if (combined.includes('AGUS') || combined.includes('AGU') || combined.includes('AUG')) return 'AGUSTUS';
+  if (combined.includes('JULI') || combined.includes('JUL')) return 'JULI';
+  if (combined.includes('JUNI') || combined.includes('JUN')) return 'JUNI';
+  if (combined.includes('MEI') || combined.includes('MAY')) return 'MEI';
+  if (combined.includes('APR')) return 'APRIL';
+  if (combined.includes('MAR')) return 'MARET';
+  if (combined.includes('FEB')) return 'FEBRUARI';
+  if (combined.includes('JAN')) return 'JANUARI';
+  if (combined.includes('OKT') || combined.includes('OCT')) return 'OKTOBER';
+  if (combined.includes('NOV')) return 'NOVEMBER';
+  if (combined.includes('DES') || combined.includes('DEC')) return 'DESEMBER';
+
+  // 2. Strict numeric slash/dash/dot date matching SECOND
+  if (combined.includes('/09/') || combined.includes('-09-') || combined.includes('.09.') || combined.endsWith('/09')) return 'SEPTEMBER';
+  if (combined.includes('/08/') || combined.includes('-08-') || combined.includes('.08.') || combined.endsWith('/08')) return 'AGUSTUS';
+  if (combined.includes('/07/') || combined.includes('-07-') || combined.includes('.07.') || combined.endsWith('/07')) return 'JULI';
+  if (combined.includes('/06/') || combined.includes('-06-') || combined.includes('.06.') || combined.endsWith('/06')) return 'JUNI';
+  if (combined.includes('/05/') || combined.includes('-05-') || combined.includes('.05.') || combined.endsWith('/05')) return 'MEI';
+  if (combined.includes('/04/') || combined.includes('-04-') || combined.includes('.04.') || combined.endsWith('/04')) return 'APRIL';
+  if (combined.includes('/03/') || combined.includes('-03-') || combined.includes('.03.') || combined.endsWith('/03')) return 'MARET';
+  if (combined.includes('/02/') || combined.includes('-02-') || combined.includes('.02.') || combined.endsWith('/02')) return 'FEBRUARI';
+  if (combined.includes('/01/') || combined.includes('-01-') || combined.includes('.01.') || combined.endsWith('/01')) return 'JANUARI';
+  if (combined.includes('/10/') || combined.includes('-10-') || combined.includes('.10.') || combined.endsWith('/10')) return 'OKTOBER';
+  if (combined.includes('/11/') || combined.includes('-11-') || combined.includes('.11.') || combined.endsWith('/11')) return 'NOVEMBER';
+  if (combined.includes('/12/') || combined.includes('-12-') || combined.includes('.12.') || combined.endsWith('/12')) return 'DESEMBER';
 
   return 'SEPTEMBER';
 }
